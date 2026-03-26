@@ -1,13 +1,13 @@
-# ColorLog
+# styled-log
 
-A lightweight, dependency-free logger for Node.js/TypeScript that supports:
+A lightweight logger for Node.js/TypeScript that supports:
 
-* 🎨 ANSI color formatting
-* 🏷️ Log levels (`info`, `success`, `warn`, `error`, `debug`)
-* ✨ Text styling (bold, underline, etc.)
-* 🕒 ISO timestamps
-* 🔇 Log level filtering (e.g. only show `warn` and above)
-* 🧩 Custom formatting via `print()`
+- 🎨 ANSI color formatting
+- 🏷️ Log levels (`info`, `success`, `warn`, `error`, `debug`)
+- ✨ Text styling (bold, underline, etc.)
+- 🕒 ISO timestamps
+- 🔇 Log level filtering (e.g. only show `warn` and above)
+- 🧩 Custom formatting
 
 ---
 
@@ -16,7 +16,7 @@ A lightweight, dependency-free logger for Node.js/TypeScript that supports:
 Install package in your project:
 
 ```bash
-npm install colorlog-ts@latest --save
+npm install styled-log@latest --save
 ```
 
 ---
@@ -26,7 +26,7 @@ npm install colorlog-ts@latest --save
 ### Basic Example
 
 ```ts
-import logger from "./logger";
+import logger from "styled-log";
 
 logger.info("Hello world");
 logger.success("Operation completed");
@@ -44,15 +44,15 @@ Control which logs are shown by setting a minimum log level.
 ### Example
 
 ```ts
-import logger from "./logger";
+import logger from "styled-log";
 
 // Only show warn, error
 logger.setLevel("warn");
 
-logger.info("Hidden");    // ❌ not shown
+logger.info("Hidden"); // ❌ not shown
 logger.success("Hidden"); // ❌ not shown
-logger.warn("Visible");   // ✅ shown
-logger.error("Visible");  // ✅ shown
+logger.warn("Visible"); // ✅ shown
+logger.error("Visible"); // ✅ shown
 ```
 
 ---
@@ -62,7 +62,7 @@ logger.error("Visible");  // ✅ shown
 From lowest → highest priority:
 
 ```ts
-debug < info < success < warn < error
+debug < info < success < warn < error;
 ```
 
 ---
@@ -70,12 +70,12 @@ debug < info < success < warn < error
 ## 🎨 Custom Styling
 
 ```ts
-import logger, { Style, FgColor, BgColor } from "./logger";
+import logger from "styled-log";
 
-logger.print("Custom message", {
-  fg: FgColor.Cyan,
-  bg: BgColor.Black,
-  style: [Style.Bright, Style.Underscore],
+logger.log("Custom message", {
+  color: red,
+  bgColor: bgBlack,
+  modifiers: ["bold", "underline"],
 });
 ```
 
@@ -85,16 +85,16 @@ logger.print("Custom message", {
 
 ### Logger Methods
 
-| Method                 | Description           |
-| ---------------------- | --------------------- |
-| `setLevel(level)`      | Set minimum log level |
-| `getLevel()`           | Get current log level |
-| `info(msg)`            | Informational message |
-| `success(msg)`         | Success message       |
-| `warn(msg)`            | Warning message       |
-| `error(msg)`           | Error message         |
-| `debug(msg)`           | Debug message         |
-| `print(text, options)` | Custom styled output  |
+| Method               | Description           |
+| -------------------- | --------------------- |
+| `setLevel(level)`    | Set minimum log level |
+| `getLevel()`         | Get current log level |
+| `info(msg)`          | Informational message |
+| `success(msg)`       | Success message       |
+| `warn(msg)`          | Warning message       |
+| `error(msg)`         | Error message         |
+| `debug(msg)`         | Debug message         |
+| `log(text, options)` | Custom styled output  |
 
 ---
 
@@ -109,75 +109,22 @@ type LogLevel = "debug" | "info" | "success" | "warn" | "error";
 ## 🎨 Styling Options
 
 ```ts
-type ColorizeOptions = {
-  fg?: FgColor;
-  bg?: BgColor;
-  style?: Style | Style[];
+type StyleOptions = {
+  color?: ColorName;
+  bgColor?: BgColorName;
+  modifiers?: ModifierName | ModifierName[];
 };
 ```
-
----
-
-## ✨ Styles
-
-```ts
-enum Style {
-  Reset,
-  Bright,
-  Dim,
-  Underscore,
-  Blink,
-  Reverse,
-  Hidden
-}
-```
-
----
-
-## 🌈 Foreground Colors
-
-```ts
-enum FgColor {
-  Black,
-  Red,
-  Green,
-  Yellow,
-  Blue,
-  Magenta,
-  Cyan,
-  White,
-  Gray
-}
-```
-
----
-
-## 🧱 Background Colors
-
-```ts
-enum BgColor {
-  Black,
-  Red,
-  Green,
-  Yellow,
-  Blue,
-  Magenta,
-  Cyan,
-  White,
-  Gray
-}
-```
-
 ---
 
 ## 🧠 Features
 
-* ✅ Clean and minimal API
-* ✅ Fully typed (TypeScript)
-* ✅ Multiple styles supported
-* ✅ Safe object logging (auto JSON formatting)
-* ✅ Log level filtering
-* ✅ Easily extensible
+- ✅ Clean and minimal API
+- ✅ Fully typed (TypeScript)
+- ✅ Multiple styles supported
+- ✅ Safe object logging (auto JSON formatting)
+- ✅ Log level filtering
+- ✅ Easily extensible
 
 ---
 
