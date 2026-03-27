@@ -1,11 +1,11 @@
 {
   "name": "styled-log-ts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A lightweight color logger for Node.js/TypeScript",
   "author": "jankayala",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/jankayala/styled-log-ts.git"
   },
   "homepage": "https://github.com/jankayala/styled-log-ts",
   "keywords": [
