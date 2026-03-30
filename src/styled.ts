@@ -1,4 +1,4 @@
-const COLOR_CODES = {
+export const COLOR_CODES = {
   black: [30, 39],
   red: [31, 39],
   green: [32, 39],
@@ -19,7 +19,7 @@ const COLOR_CODES = {
   white: [97, 39],
 } as const;
 
-const BG_COLOR_CODES = {
+export const BG_COLOR_CODES = {
   bgBlack: [40, 49],
   bgRed: [41, 49],
   bgGreen: [42, 49],
@@ -40,7 +40,7 @@ const BG_COLOR_CODES = {
   bgWhite: [107, 49],
 } as const;
 
-const MODIFIER_CODES = {
+export const MODIFIER_CODES = {
   bold: [1, 22],
   dim: [2, 22],
   italic: [3, 23],
