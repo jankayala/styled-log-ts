@@ -11,7 +11,9 @@ const typeSourceCandidates = [
   resolve(distDir, "index.d.mts"),
   resolve(distDir, "index.d.cts"),
 ];
-const typeSource = typeSourceCandidates.find((filePath) => existsSync(filePath));
+const typeSource = typeSourceCandidates.find((filePath) =>
+  existsSync(filePath),
+);
 
 if (!typeSource) {
   throw new Error("No generated type declaration file was found in dist/.");

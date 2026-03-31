@@ -4,11 +4,51 @@ import {
   type ColorName,
   type BgColorName,
   type ModifierName,
+  type StyleOptions,
   ANSI_CODES,
   COLOR_CODES,
   BG_COLOR_CODES,
   MODIFIER_CODES,
 } from "@/styled";
+
+const validStyleOptionsSamples: StyleOptions[] = [
+  { color: "red" },
+  { rgb: [1, 2, 3], bgHex: "#abcdef" },
+  { hex: "#123456", bgColor: "bgBlue", modifiers: "bold" },
+];
+
+void validStyleOptionsSamples;
+
+// @ts-expect-error `color` and `rgb` are mutually exclusive.
+const invalidForegroundRgbOptions: StyleOptions = {
+  color: "red",
+  rgb: [1, 2, 3] as [number, number, number],
+};
+
+// @ts-expect-error `color` and `hex` are mutually exclusive.
+const invalidForegroundHexOptions: StyleOptions = {
+  color: "red",
+  hex: "#ff0000",
+};
+
+// @ts-expect-error `bgColor` and `bgRgb` are mutually exclusive.
+const invalidBackgroundRgbOptions: StyleOptions = {
+  bgColor: "bgRed",
+  bgRgb: [4, 5, 6] as [number, number, number],
+};
+
+// @ts-expect-error `bgRgb` and `bgHex` are mutually exclusive.
+const invalidBackgroundHexOptions: StyleOptions = {
+  bgRgb: [4, 5, 6] as [number, number, number],
+  bgHex: "#040506",
+};
+
+void [
+  invalidForegroundRgbOptions,
+  invalidForegroundHexOptions,
+  invalidBackgroundRgbOptions,
+  invalidBackgroundHexOptions,
+];
 
 describe("styled", () => {
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;

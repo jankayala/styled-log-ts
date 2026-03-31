@@ -27,7 +27,6 @@ npm install styled-log-ts@latest --save
 
 ```ts
 import { logger } from "styled-log-ts";
-// also supported: import logger from "styled-log-ts"
 
 logger.info("Hello world");
 logger.success("Operation completed");
@@ -39,7 +38,7 @@ logger.debug("Debug info");
 ### CommonJS
 
 ```js
-const logger = require("styled-log-ts");
+const { logger } = require("styled-log-ts");
 
 logger.info("Hello from CommonJS");
 ```
@@ -82,8 +81,8 @@ debug < info < success < warn < error;
 import { logger } from "styled-log-ts";
 
 logger.log("Custom message", {
-  color: red,
-  bgColor: bgBlack,
+  color: "red",
+  bgColor: "bgBlack",
   modifiers: ["bold", "underline"],
 });
 ```
@@ -119,21 +118,23 @@ type LogLevel = "debug" | "info" | "success" | "warn" | "error";
 
 ```ts
 type StyleOptions = {
+  // choose only one foreground option
   color?: ColorName;
+  rgb?: [number, number, number];
+  hex?: string;
+
+  // choose only one background option
   bgColor?: BgColorName;
+  bgRgb?: [number, number, number];
+  bgHex?: string;
+
   modifiers?: ModifierName | ModifierName[];
 };
 ```
+
+> Only one of `color` / `rgb` / `hex` may be provided at a time, and only one of `bgColor` / `bgRgb` / `bgHex` may be provided at a time.
+
 ---
-
-## 🧠 Features
-
-- ✅ Clean and minimal API
-- ✅ Fully typed (TypeScript)
-- ✅ Multiple styles supported
-- ✅ Safe object logging (auto JSON formatting)
-- ✅ Log level filtering
-- ✅ Easily extensible
 
 ---
 

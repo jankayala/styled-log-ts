@@ -65,15 +65,54 @@ export type StyleName = keyof typeof ANSI_CODES;
 const COLOR_NAMES = new Set<string>(Object.keys(COLOR_CODES));
 const BG_COLOR_NAMES = new Set<string>(Object.keys(BG_COLOR_CODES));
 
-export interface StyleOptions {
-  color?: ColorName;
-  bgColor?: BgColorName;
-  rgb?: [number, number, number];
-  bgRgb?: [number, number, number];
-  hex?: string;
-  bgHex?: string;
-  modifiers?: ModifierName | ModifierName[];
-}
+type ForegroundStyleOptions =
+  | {
+      color?: ColorName;
+      rgb?: never;
+      hex?: never;
+    }
+  | {
+      color?: never;
+      rgb?: [number, number, number];
+      hex?: never;
+    }
+  | {
+      color?: never;
+      rgb?: never;
+      hex?: string;
+    }
+  | {
+      color?: never;
+      rgb?: never;
+      hex?: never;
+    };
+
+type BackgroundStyleOptions =
+  | {
+      bgColor?: BgColorName;
+      bgRgb?: never;
+      bgHex?: never;
+    }
+  | {
+      bgColor?: never;
+      bgRgb?: [number, number, number];
+      bgHex?: never;
+    }
+  | {
+      bgColor?: never;
+      bgRgb?: never;
+      bgHex?: string;
+    }
+  | {
+      bgColor?: never;
+      bgRgb?: never;
+      bgHex?: never;
+    };
+
+export type StyleOptions = ForegroundStyleOptions &
+  BackgroundStyleOptions & {
+    modifiers?: ModifierName | ModifierName[];
+  };
 
 type RgbStyle = {
   kind: "rgb" | "bgRgb";

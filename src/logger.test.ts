@@ -220,17 +220,23 @@ describe("Logger", () => {
       );
     });
 
-    it("supports log() with rgb, bgRgb, and bgHex style options", () => {
+    it("supports log() with bgRgb style options", () => {
+      logger.log("bg rgb option", { bgRgb: [4, 5, 6] });
+
+      expect(logSpy).toHaveBeenCalledWith(
+        "\x1b[48;2;4;5;6mbg rgb option\x1b[49m",
+      );
+    });
+
+    it("supports log() with rgb and bgHex style options", () => {
       logger.log("rich styles", {
         rgb: [1, 2, 3],
-        bgRgb: [4, 5, 6],
         bgHex: "#070809",
       });
 
       const calledWith = logSpy.mock.calls[0][0];
       expect(calledWith).toContain("rich styles");
       expect(calledWith).toContain("\x1b[38;2;1;2;3m");
-      expect(calledWith).toContain("\x1b[48;2;4;5;6m");
       expect(calledWith).toContain("\x1b[48;2;7;8;9m");
     });
 
