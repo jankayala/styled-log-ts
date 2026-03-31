@@ -26,13 +26,22 @@ npm install styled-log-ts@latest --save
 ### Basic Example
 
 ```ts
-import logger from "styled-log-ts";
+import { logger } from "styled-log-ts";
+// also supported: import logger from "styled-log-ts"
 
 logger.info("Hello world");
 logger.success("Operation completed");
 logger.warn("This is a warning");
 logger.error("Something went wrong");
 logger.debug("Debug info");
+```
+
+### CommonJS
+
+```js
+const logger = require("styled-log-ts");
+
+logger.info("Hello from CommonJS");
 ```
 
 ---
@@ -44,7 +53,7 @@ Control which logs are shown by setting a minimum log level.
 ### Example
 
 ```ts
-import logger from "styled-log-ts";
+import { logger } from "styled-log-ts";
 
 // Only show warn, error
 logger.setLevel("warn");
@@ -70,7 +79,7 @@ debug < info < success < warn < error;
 ## 🎨 Custom Styling
 
 ```ts
-import logger from "styled-log-ts";
+import { logger } from "styled-log-ts";
 
 logger.log("Custom message", {
   color: red,
