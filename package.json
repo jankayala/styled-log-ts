@@ -21,26 +21,24 @@
   ],
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.require.cjs",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.require.cjs",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs"
+      "types": "./dist/index.d.mts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
     }
   },
   "files": [
     "dist",
-    "package.json",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown && node scripts/postbuild.mjs",
-    "test": "vitest",
+    "build": "tsdown",
+    "test": "vitest run",
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
