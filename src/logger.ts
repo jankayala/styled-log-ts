@@ -7,6 +7,7 @@ import {
   MODIFIER_CODES,
   type StyleOptions,
 } from "@/styled";
+import { shouldUseColor } from "@/color-support";
 import { inspect } from "node:util";
 
 export enum LogLevel {
@@ -120,7 +121,9 @@ export class Logger {
     }
 
     if (options.bgColor && !(options.bgColor in BG_COLOR_CODES)) {
-      throw new TypeError(`Unknown background color: ${String(options.bgColor)}`);
+      throw new TypeError(
+        `Unknown background color: ${String(options.bgColor)}`,
+      );
     }
 
     if (options.rgb && !this.isRgbTriplet(options.rgb)) {
@@ -172,7 +175,11 @@ export class Logger {
     const label = level.toUpperCase();
 
     const prefix = styled.bold[color](`[${label}]`);
-    const time = this.showTime ? styled.dim(timestamp()) : "";
+    const time = this.showTime
+      ? shouldUseColor()
+        ? styled.dim(timestamp())
+        : timestamp()
+      : "";
 
     console.log(
       `${prefix}${this.showTime ? " " + time : ""}`,
@@ -231,24 +238,40 @@ export class Logger {
 
 const baseLogger = new Logger(true);
 
-function createLoggerStyled(currentStyle: any = styled): any {
-  const fn = (text: string) => {
+type LoggerStyledCallable = (text: string) => void;
+type LoggerStyledChain = LoggerStyledCallable & typeof styled;
+
+export type StyledLogger = Logger & typeof styled;
+
+function createLoggerStyled(
+  currentStyle: typeof styled = styled,
+): LoggerStyledChain {
+  const fn: LoggerStyledCallable = (text: string) => {
     console.log(currentStyle(text));
   };
 
-  return new Proxy(fn, {
+  return new Proxy(fn as LoggerStyledChain, {
     get(_, prop: string | symbol) {
-      if (prop === "rgb" || prop === "bgRgb") {
+      if (prop === "rgb") {
         return (red: number, green: number, blue: number) =>
-          createLoggerStyled(currentStyle[prop](red, green, blue));
+          createLoggerStyled(currentStyle.rgb(red, green, blue));
       }
 
-      if (prop === "hex" || prop === "bgHex") {
-        return (value: string) => createLoggerStyled(currentStyle[prop](value));
+      if (prop === "bgRgb") {
+        return (red: number, green: number, blue: number) =>
+          createLoggerStyled(currentStyle.bgRgb(red, green, blue));
+      }
+
+      if (prop === "hex") {
+        return (value: string) => createLoggerStyled(currentStyle.hex(value));
+      }
+
+      if (prop === "bgHex") {
+        return (value: string) => createLoggerStyled(currentStyle.bgHex(value));
       }
 
       if (typeof prop === "string" && prop in ANSI_CODES) {
-        return createLoggerStyled(currentStyle[prop]);
+        return createLoggerStyled(currentStyle[prop as StyleName]);
       }
 
       return undefined;
@@ -256,27 +279,35 @@ function createLoggerStyled(currentStyle: any = styled): any {
   });
 }
 
-export const logger = new Proxy(baseLogger, {
+export const logger: StyledLogger = new Proxy(baseLogger, {
   get(target, prop) {
-    if (prop in target) {
-      const value = (target as any)[prop];
+    if (typeof prop === "string" && prop in target) {
+      const value = target[prop as keyof Logger];
       return typeof value === "function" ? value.bind(target) : value;
     }
 
-    if (prop === "rgb" || prop === "bgRgb") {
+    if (prop === "rgb") {
       return (red: number, green: number, blue: number) =>
-        createLoggerStyled((styled as any)[prop](red, green, blue));
+        createLoggerStyled(styled.rgb(red, green, blue));
     }
 
-    if (prop === "hex" || prop === "bgHex") {
-      return (value: string) =>
-        createLoggerStyled((styled as any)[prop](value));
+    if (prop === "bgRgb") {
+      return (red: number, green: number, blue: number) =>
+        createLoggerStyled(styled.bgRgb(red, green, blue));
+    }
+
+    if (prop === "hex") {
+      return (value: string) => createLoggerStyled(styled.hex(value));
+    }
+
+    if (prop === "bgHex") {
+      return (value: string) => createLoggerStyled(styled.bgHex(value));
     }
 
     if (typeof prop === "string" && prop in ANSI_CODES) {
-      return createLoggerStyled((styled as any)[prop]);
+      return createLoggerStyled(styled[prop as StyleName]);
     }
 
     return undefined;
   },
-}) as Logger & typeof styled;
+}) as StyledLogger;

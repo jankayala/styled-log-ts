@@ -1,4 +1,4 @@
-import { shouldUseColor } from "./color-support";
+import { shouldUseColor } from "@/color-support";
 
 export const COLOR_CODES = {
   black: [30, 39],

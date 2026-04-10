@@ -60,6 +60,16 @@ describe("Logger", () => {
         );
       });
 
+      it("uses plain timestamps when colors are disabled", () => {
+        process.env["NO_COLOR"] = "1";
+        const withTimeLogger = new Logger(true);
+        withTimeLogger.info("test");
+
+        expect(logSpy).toHaveBeenCalledWith(`[INFO] ${FIXED_DATE}`, "test");
+
+        delete process.env["NO_COLOR"];
+      });
+
       it("respects showTime setting for all log levels", () => {
         const noTimeLogger = new Logger(false);
 
@@ -416,6 +426,24 @@ describe("Logger", () => {
         expect(calledWith).toContain("\x1b[38;2;1;2;3m");
         expect(calledWith).toContain("\x1b[48;2;4;5;6m");
       });
+
+      it("supports chained bgRgb after existing styles", () => {
+        logger.bold.bgRgb(7, 8, 9)("bgRgb chained text");
+
+        const calledWith = logSpy.mock.calls[0][0];
+        expect(calledWith).toContain("bgRgb chained text");
+        expect(calledWith).toContain("\x1b[1m");
+        expect(calledWith).toContain("\x1b[48;2;7;8;9m");
+      });
+
+      it("supports chained hex after existing styles", () => {
+        logger.underline.hex("#112233")("hex chained text");
+
+        const calledWith = logSpy.mock.calls[0][0];
+        expect(calledWith).toContain("hex chained text");
+        expect(calledWith).toContain("\x1b[4m");
+        expect(calledWith).toContain("\x1b[38;2;17;34;51m");
+      });
     });
 
     describe("rgb and hex", () => {
@@ -440,6 +468,14 @@ describe("Logger", () => {
 
         expect(logSpy).toHaveBeenCalledWith(
           "\x1b[38;2;51;102;153mhex colored text\x1b[39m",
+        );
+      });
+
+      it("supports hex background styling that logs automatically", () => {
+        logger.bgHex("#102030")("hex colored background");
+
+        expect(logSpy).toHaveBeenCalledWith(
+          "\x1b[48;2;16;32;48mhex colored background\x1b[49m",
         );
       });
     });
