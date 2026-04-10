@@ -54,6 +54,20 @@ logger2.info("With timestamp"); // [INFO] 2026-01-01T12:30:45.123Z With timestam
 const logger3 = new Logger({ format: "json" });
 logger3.info("service started", { port: 3000 });
 // {"level":"info","time":"2026-01-01T12:30:45.123Z","message":"service started {\n  \"port\": 3000\n}","args":["service started",{"port":3000}]}
+
+// Configure nested object serialization and inspect fallback
+const logger4 = new Logger({
+  serialization: {
+    depth: 2,
+    inspect: {
+      depth: 2,
+      compact: true,
+    },
+  },
+});
+
+logger4.info({ deeply: { nested: { value: 42 } } });
+// [INFO] {"deeply":{"nested":"[Object]"}}
 ```
 
 ### CommonJS
@@ -185,14 +199,26 @@ import { logger } from "styled-log-ts";
 
 ```text
 new Logger()
-new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?: LogLevel })
+new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?: LogLevel; serialization?: { depth?: number; inspect?: { depth?: number; compact?: boolean | number } } })
 ```
 
-| Parameter  | Type                 | Default    | Description                                         |
-| ---------- | -------------------- | ---------- | --------------------------------------------------- |
-| `showTime` | `boolean`            | `false`    | Include ISO timestamp prefix (pretty mode)          |
-| `format`   | `"pretty" \| "json"` | `"pretty"` | Output mode (`json` emits one NDJSON line per call) |
-| `logLevel` | `LogLevel`           | `"debug"`  | Initiales Mindest-Loglevel                          |
+| Parameter                       | Type                 | Default    | Description                                                               |
+| ------------------------------- | -------------------- | ---------- | ------------------------------------------------------------------------- |
+| `showTime`                      | `boolean`            | `false`    | Include ISO timestamp prefix (pretty mode)                                |
+| `format`                        | `"pretty" \| "json"` | `"pretty"` | Output mode (`json` emits one NDJSON line per call)                       |
+| `logLevel`                      | `LogLevel`           | `"debug"`  | Initial minimum log level                                                 |
+| `serialization.depth`           | `number`             | `4`        | Maximum nesting depth before objects/arrays are collapsed to placeholders |
+| `serialization.inspect.depth`   | `number`             | `4`        | `inspect()` depth used for fallback formatting                            |
+| `serialization.inspect.compact` | `boolean \| number`  | `false`    | `inspect()` compactness for fallback formatting                           |
+
+### Serialization behavior
+
+- `undefined` → `"undefined"`
+- `null` → `"null"`
+- `Symbol("x")` → `"Symbol(x)"`
+- functions → `"[Function: name]"` (or `"[Function (anonymous)]"`)
+- circular references → `"[Circular]"`
+- nested objects beyond `serialization.depth` → `"[Object]"` / `"[Array]"`
 
 ### Logger Methods
 

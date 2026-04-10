@@ -154,6 +154,39 @@ describe("Logger", () => {
       expect(parsed.error.stack).toContain("Error: boom");
     });
 
+    it("omits stack in structured json errors when it is missing", () => {
+      const jsonLogger = new Logger({ format: "json" });
+      const error = new Error("boom");
+      delete error.stack;
+
+      jsonLogger.error(error);
+
+      const line = errorSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as {
+        error: { name: string; message: string; stack?: string };
+      };
+
+      expect(parsed.error).toEqual({
+        name: "Error",
+        message: "boom",
+      });
+      expect(parsed.error).not.toHaveProperty("stack");
+    });
+
+    it("serializes Map and Set values in json mode", () => {
+      const jsonLogger = new Logger({ format: "json" });
+
+      jsonLogger.info(new Map([["key", 1]]), new Set([2, 3]));
+
+      const line = logSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as { args: unknown[] };
+
+      expect(parsed.args).toEqual([
+        { "[Map]": [["key", 1]] },
+        { "[Set]": [2, 3] },
+      ]);
+    });
+
     it("routes json errors to stderr and non-errors to stdout", () => {
       const jsonLogger = new Logger({ format: "json" });
 
@@ -306,6 +339,93 @@ describe("Logger", () => {
       expect(logSpy).toHaveBeenCalledWith("msg", {});
     });
 
+    it("formats undefined explicitly", () => {
+      logger.info(undefined);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "undefined",
+      );
+    });
+
+    it("formats null explicitly", () => {
+      logger.info(null);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "null",
+      );
+    });
+
+    it("formats Symbol values explicitly", () => {
+      logger.info(Symbol("x"));
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "Symbol(x)",
+      );
+    });
+
+    it("formats function values explicitly", () => {
+      function namedHandler() {
+        return "ok";
+      }
+
+      logger.info(namedHandler);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "[Function: namedHandler]",
+      );
+    });
+
+    it("formats anonymous function values explicitly", () => {
+      logger.info(function () {
+        return "ok";
+      });
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "[Function (anonymous)]",
+      );
+    });
+
+    it("formats Date values explicitly", () => {
+      logger.info(new Date(FIXED_DATE));
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        FIXED_DATE,
+      );
+    });
+
+    it("formats invalid Date values explicitly", () => {
+      logger.info(new Date(Number.NaN));
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "Invalid Date",
+      );
+    });
+
+    it("formats RegExp values explicitly", () => {
+      logger.info(/hello/gi);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "/hello/gi",
+      );
+    });
+
+    it("formats array values explicitly", () => {
+      logger.info([1, { nested: true }]);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        JSON.stringify([1, { nested: true }], null, 2),
+      );
+    });
+
     it("formats circular objects without throwing", () => {
       const circular: Record<string, unknown> = { name: "root" };
       circular.self = circular;
@@ -314,6 +434,53 @@ describe("Logger", () => {
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
         expect.stringContaining("[Circular]"),
+      );
+    });
+
+    it("preserves non-circular shared references", () => {
+      const shared = { value: 1 };
+
+      logger.info({ left: shared, right: shared });
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.stringContaining('"left": {'),
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.stringContaining('"right": {'),
+      );
+    });
+
+    it("serializes enumerable symbol keys", () => {
+      const symbolKey = Symbol("secret");
+      const value: Record<PropertyKey, unknown> = {};
+      Object.defineProperty(value, symbolKey, {
+        enumerable: true,
+        value: "visible",
+      });
+
+      logger.info(value);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.stringContaining('"Symbol(secret)": "visible"'),
+      );
+    });
+
+    it("omits non-enumerable symbol keys", () => {
+      const hiddenKey = Symbol("hidden");
+      const value: Record<PropertyKey, unknown> = { visible: true };
+      Object.defineProperty(value, hiddenKey, {
+        enumerable: false,
+        value: "secret",
+      });
+
+      logger.info(value);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.not.stringContaining("Symbol(hidden)"),
       );
     });
 
@@ -357,16 +524,81 @@ describe("Logger", () => {
     });
 
     it("falls back to inspect() when JSON serialization throws", () => {
-      const tricky = {
-        toJSON() {
+      const tricky = {};
+      Object.defineProperty(tricky, "broken", {
+        enumerable: true,
+        get() {
           throw new Error("serialize failed");
         },
-      };
+      });
 
       expect(() => logger.info(tricky)).not.toThrow();
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
-        expect.stringContaining("toJSON"),
+        expect.stringContaining("broken"),
+      );
+    });
+
+    it("applies the configured serialization depth limit", () => {
+      const depthLimitedLogger = new Logger({
+        serialization: { depth: 1 },
+      });
+
+      depthLimitedLogger.info({ outer: { inner: { value: true } } });
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.stringContaining('"outer": "[Object]"'),
+      );
+    });
+
+    it("applies the configured serialization depth limit to arrays", () => {
+      const depthLimitedLogger = new Logger({
+        serialization: { depth: 1 },
+      });
+
+      depthLimitedLogger.info({ items: [{ value: true }] });
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.stringContaining('"items": "[Array]"'),
+      );
+    });
+
+    it("uses configurable inspect fallback options", () => {
+      const compactLogger = new Logger({
+        serialization: {
+          inspect: {
+            depth: 2,
+            compact: true,
+          },
+        },
+      });
+      const tricky = {};
+
+      Object.defineProperty(tricky, "nested", {
+        enumerable: true,
+        get() {
+          throw new Error("serialize failed");
+        },
+      });
+
+      compactLogger.info(tricky);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.stringContaining("{ nested: [Getter] }"),
+      );
+    });
+
+    it("falls back to inspect for non-plain objects without enumerable keys", () => {
+      class HiddenValue {}
+
+      logger.info(new HiddenValue());
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        expect.stringContaining("HiddenValue"),
       );
     });
 

@@ -20,10 +20,21 @@ export enum LogLevel {
 
 export type LogFormat = "pretty" | "json";
 
+export type LoggerInspectOptions = {
+  depth?: number;
+  compact?: boolean | number;
+};
+
+export type LoggerSerializationOptions = {
+  depth?: number;
+  inspect?: LoggerInspectOptions;
+};
+
 export type LoggerOptions = {
   showTime?: boolean;
   format?: LogFormat;
   logLevel?: LogLevel;
+  serialization?: LoggerSerializationOptions;
 };
 
 const levelPriority: Record<LogLevel, number> = {
@@ -34,45 +45,63 @@ const levelPriority: Record<LogLevel, number> = {
   error: 4,
 };
 
-function format(message: unknown): string {
-  if (message instanceof Error) {
-    return message.stack ?? `${message.name}: ${message.message}`;
-  }
+type ResolvedLoggerInspectOptions = {
+  depth: number;
+  compact: boolean | number;
+};
 
-  if (typeof message === "bigint") {
-    return `${message}n`;
-  }
+type ResolvedLoggerSerializationOptions = {
+  depth: number;
+  inspect: ResolvedLoggerInspectOptions;
+};
 
-  if (typeof message === "object" && message !== null) {
-    try {
-      const seen = new WeakSet<object>();
-      return JSON.stringify(
-        message,
-        (_, value: unknown) => {
-          if (typeof value === "bigint") return `${value}n`;
-          if (value instanceof Error) {
-            return {
-              name: value.name,
-              message: value.message,
-              stack: value.stack,
-            };
-          }
+const DEFAULT_SERIALIZATION_OPTIONS: ResolvedLoggerSerializationOptions = {
+  depth: 4,
+  inspect: {
+    depth: 4,
+    compact: false,
+  },
+};
 
-          if (typeof value === "object" && value !== null) {
-            if (seen.has(value)) return "[Circular]";
-            seen.add(value);
-          }
+function normalizeNonNegativeInteger(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : fallback;
+}
 
-          return value;
-        },
-        2,
-      );
-    } catch {
-      return inspect(message, { depth: 4, colors: false, compact: false });
-    }
-  }
+function resolveSerializationOptions(
+  options?: LoggerSerializationOptions,
+): ResolvedLoggerSerializationOptions {
+  return {
+    depth: normalizeNonNegativeInteger(
+      options?.depth,
+      DEFAULT_SERIALIZATION_OPTIONS.depth,
+    ),
+    inspect: {
+      depth: normalizeNonNegativeInteger(
+        options?.inspect?.depth,
+        DEFAULT_SERIALIZATION_OPTIONS.inspect.depth,
+      ),
+      compact:
+        options?.inspect?.compact ??
+        DEFAULT_SERIALIZATION_OPTIONS.inspect.compact,
+    },
+  };
+}
 
-  return String(message);
+function inspectFallback(
+  value: unknown,
+  options: ResolvedLoggerSerializationOptions,
+): string {
+  return inspect(value, {
+    depth: options.inspect.depth,
+    colors: false,
+    compact: options.inspect.compact,
+  });
+}
+
+function formatFunction(fn: Function): string {
+  return fn.name ? `[Function: ${fn.name}]` : "[Function (anonymous)]";
 }
 
 function serializeError(error: Error): {
@@ -95,37 +124,137 @@ function serializeError(error: Error): {
   return serialized;
 }
 
-function toSerializable(value: unknown): unknown {
+function toSerializable(
+  value: unknown,
+  options: ResolvedLoggerSerializationOptions,
+  depth: number = 0,
+  seen: WeakSet<object> = new WeakSet<object>(),
+): unknown {
+  if (value === undefined) {
+    return "undefined";
+  }
+
+  if (value === null) {
+    return null;
+  }
+
   if (value instanceof Error) {
     return serializeError(value);
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? "Invalid Date" : value.toISOString();
+  }
+
+  if (value instanceof RegExp) {
+    return String(value);
   }
 
   if (typeof value === "bigint") {
     return `${value}n`;
   }
 
-  if (typeof value === "object" && value !== null) {
-    try {
-      const seen = new WeakSet<object>();
-      return JSON.parse(
-        JSON.stringify(value, (_, current: unknown) => {
-          if (typeof current === "bigint") return `${current}n`;
-          if (current instanceof Error) return serializeError(current);
-
-          if (typeof current === "object" && current !== null) {
-            if (seen.has(current)) return "[Circular]";
-            seen.add(current);
-          }
-
-          return current;
-        }),
-      );
-    } catch {
-      return inspect(value, { depth: 4, colors: false, compact: false });
-    }
+  if (typeof value === "symbol") {
+    return String(value);
   }
 
-  return value;
+  if (typeof value === "function") {
+    return formatFunction(value);
+  }
+
+  if (typeof value !== "object") {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return "[Circular]";
+  }
+
+  if (depth >= options.depth) {
+    return Array.isArray(value) ? "[Array]" : "[Object]";
+  }
+
+  seen.add(value);
+
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        toSerializable(item, options, depth + 1, seen),
+      );
+    }
+
+    if (value instanceof Map) {
+      return {
+        "[Map]": Array.from(value.entries(), ([key, entryValue]) => [
+          toSerializable(key, options, depth + 1, seen),
+          toSerializable(entryValue, options, depth + 1, seen),
+        ]),
+      };
+    }
+
+    if (value instanceof Set) {
+      return {
+        "[Set]": Array.from(value.values(), (item) =>
+          toSerializable(item, options, depth + 1, seen),
+        ),
+      };
+    }
+
+    const result: Record<string, unknown> = {};
+
+    for (const [key, nestedValue] of Object.entries(value)) {
+      result[key] = toSerializable(nestedValue, options, depth + 1, seen);
+    }
+
+    for (const symbolKey of Object.getOwnPropertySymbols(value)) {
+      if (Object.prototype.propertyIsEnumerable.call(value, symbolKey)) {
+        result[String(symbolKey)] = toSerializable(
+          Reflect.get(value, symbolKey),
+          options,
+          depth + 1,
+          seen,
+        );
+      }
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    const isPlainObject = prototype === Object.prototype || prototype === null;
+
+    if (!isPlainObject && Object.keys(result).length === 0) {
+      return inspectFallback(value, options);
+    }
+
+    return result;
+  } catch {
+    return inspectFallback(value, options);
+  } finally {
+    seen.delete(value);
+  }
+}
+
+function format(
+  message: unknown,
+  options: ResolvedLoggerSerializationOptions,
+): string {
+  if (message instanceof Error) {
+    return message.stack ?? `${message.name}: ${message.message}`;
+  }
+
+  const serialized = toSerializable(message, options);
+
+  if (typeof serialized === "string") {
+    return serialized;
+  }
+
+  if (
+    serialized === null ||
+    typeof serialized === "number" ||
+    typeof serialized === "boolean"
+  ) {
+    return String(serialized);
+  }
+
+  return JSON.stringify(serialized, null, 2);
 }
 
 function timestamp(): string {
@@ -136,6 +265,7 @@ export class Logger {
   private currentLevel: LogLevel = LogLevel.Debug;
   private showTime: boolean;
   private format: LogFormat;
+  private serializationOptions: ResolvedLoggerSerializationOptions;
   private readonly styleOptionKeys = new Set([
     "color",
     "bgColor",
@@ -152,6 +282,9 @@ export class Logger {
     this.showTime = options.showTime ?? false;
     this.format = options.format ?? "pretty";
     this.currentLevel = options.logLevel ?? LogLevel.Debug;
+    this.serializationOptions = resolveSerializationOptions(
+      options.serialization,
+    );
   }
 
   setLevel(level: LogLevel) {
@@ -240,7 +373,9 @@ export class Logger {
     const output = level === LogLevel.Error ? console.error : console.log;
 
     if (this.format === "json") {
-      const serializedArgs = args.map(toSerializable);
+      const serializedArgs = args.map((arg) =>
+        toSerializable(arg, this.serializationOptions),
+      );
       const firstError = args.find((arg): arg is Error => arg instanceof Error);
 
       const payload: {
@@ -252,7 +387,9 @@ export class Logger {
       } = {
         level,
         time: timestamp(),
-        message: args.map(format).join(" "),
+        message: args
+          .map((arg) => format(arg, this.serializationOptions))
+          .join(" "),
         args: serializedArgs,
       };
 
@@ -274,7 +411,10 @@ export class Logger {
         : timestamp()
       : "";
 
-    output(`${prefix}${this.showTime ? " " + time : ""}`, ...args.map(format));
+    output(
+      `${prefix}${this.showTime ? " " + time : ""}`,
+      ...args.map((arg) => format(arg, this.serializationOptions)),
+    );
   }
 
   log(...args: unknown[]) {
@@ -299,7 +439,9 @@ export class Logger {
           s = s[mod];
         }
       }
-      console.log(s(args.map(format).join(" ")));
+      console.log(
+        s(args.map((arg) => format(arg, this.serializationOptions)).join(" ")),
+      );
     } else {
       console.log(...args);
     }
