@@ -1,4 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   styled,
   type ColorName,
@@ -52,6 +61,15 @@ void [
 
 describe("styled", () => {
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeAll(() => {
+    process.env["FORCE_COLOR"] = "1";
+    delete process.env["NO_COLOR"];
+  });
+
+  afterAll(() => {
+    delete process.env["FORCE_COLOR"];
+  });
 
   beforeEach(() => {
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -196,6 +214,15 @@ describe("styled", () => {
 });
 
 describe("styled proxy additional coverage", () => {
+  beforeAll(() => {
+    process.env["FORCE_COLOR"] = "1";
+    delete process.env["NO_COLOR"];
+  });
+
+  afterAll(() => {
+    delete process.env["FORCE_COLOR"];
+  });
+
   it("returns the original text when a style mapping is missing", () => {
     const originalRed = (ANSI_CODES as any).red;
     (ANSI_CODES as any).red = undefined;

@@ -1,3 +1,5 @@
+import { shouldUseColor } from "./color-support";
+
 export const COLOR_CODES = {
   black: [30, 39],
   red: [31, 39],
@@ -208,6 +210,10 @@ function isBackgroundStyle(style: AppliedStyle): boolean {
 }
 
 function applyStyle(text: string, style: AppliedStyle): string {
+  if (!shouldUseColor()) {
+    return text;
+  }
+
   if (typeof style === "string") {
     const codes = ANSI_CODES[style];
     if (!codes) return text;

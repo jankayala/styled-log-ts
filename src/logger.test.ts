@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from "vitest";
 import { logger, Logger, LogLevel } from "@/index";
 import { styled } from "@/styled";
 
@@ -6,6 +15,15 @@ describe("Logger", () => {
   const FIXED_DATE = "2026-01-01T00:00:00.000Z";
 
   let logSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeAll(() => {
+    process.env["FORCE_COLOR"] = "1";
+    delete process.env["NO_COLOR"];
+  });
+
+  afterAll(() => {
+    delete process.env["FORCE_COLOR"];
+  });
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -446,6 +464,15 @@ describe("Logger", () => {
 });
 
 describe("styled proxy", () => {
+  beforeAll(() => {
+    process.env["FORCE_COLOR"] = "1";
+    delete process.env["NO_COLOR"];
+  });
+
+  afterAll(() => {
+    delete process.env["FORCE_COLOR"];
+  });
+
   describe("error handling", () => {
     it("throws error for unknown styles", () => {
       expect(() => (styled as any).unknown).toThrow("Unknown style: unknown");
