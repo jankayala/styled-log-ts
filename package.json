@@ -21,6 +21,7 @@
   ],
   "license": "MIT",
   "type": "module",
+  "source": "./src/index.ts",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -46,12 +47,13 @@
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build && npm run test"
   },
   "devDependencies": {
     "@types/node": "25.6.0",
     "@vitest/coverage-v8": "4.1.4",
-    "tsdown": "0.21.7",
+    "tsdown": "0.21.8",
     "typescript": "6.0.2",
     "vitest": "4.1.4"
   },
