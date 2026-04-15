@@ -57,7 +57,7 @@ For guidelines on changelog format and examples, see [CHANGELOG.md](./CHANGELOG.
 ```bash
 git add package.json package-lock.json CHANGELOG.md
 git commit -m "chore: release v1.0.7"
-git tag v1.0.7
+git tag v1.0.7 (git tag gets applied if you run npm version [major | minor | patch] before)
 ```
 
 ### 5. Verify the build and tests
