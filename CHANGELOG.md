@@ -16,12 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `npm run format:check` script for CI validation
 - Format validation step in CI workflow (`npm run format:check` before build/test)
 - `.github/dependabot.yml` for automated npm and GitHub Actions update PRs
+- `createLogger(options)` as the recommended logger factory entry point
+- `Logger.child({ prefix })` for context-aware child loggers with inherited parent options
+- AI contributor guidance in `.github/copilot-instructions.md`
 
 ### Changed
 
 - CI job order: `install` → `format:check` → `build` → `test` → `coverage`
 - Added coverage thresholds in `vite.config.ts` (95% lines/functions/branches/statements)
 - Pinned GitHub Actions in `ci.yml` to full commit SHAs for better supply-chain safety
+- Child logger prefixes are now applied consistently across `pretty`, `json`, and `log()` output paths
+- Public API guidance now prefers `createLogger(...)` while keeping `Logger` exports stable and typed
+- Expanded `logger.ts` test coverage for child logger prefix edge cases in pretty, JSON, and `log()` paths
 
 ### Security
 
@@ -31,6 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - Added "Consistent Formatting (Any IDE)" section to README with format commands
+- Expanded README with `createLogger(...)` usage, child logger examples, and updated API reference guidance
+
+### Testing
+
+- Added Vitest coverage for `createLogger(...)` and child logger behavior, including nested prefixes and JSON output
+- Added targeted prefix edge-case tests for empty calls and non-string first arguments in `logger.ts`
+- Added an index re-export check for `createLogger`
 
 ---
 

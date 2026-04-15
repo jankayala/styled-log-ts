@@ -35,6 +35,11 @@ export type LoggerOptions = {
   format?: LogFormat;
   logLevel?: LogLevel;
   serialization?: LoggerSerializationOptions;
+  prefix?: string;
+};
+
+export type LoggerChildOptions = {
+  prefix?: string;
 };
 
 const levelPriority: Record<LogLevel, number> = {
@@ -244,11 +249,20 @@ function timestamp(): string {
   return new Date().toISOString();
 }
 
+function combinePrefixes(parentPrefix: string, childPrefix?: string): string {
+  const segments = [parentPrefix, childPrefix]
+    .map((segment) => segment?.trim())
+    .filter((segment): segment is string => Boolean(segment));
+
+  return segments.join(" ");
+}
+
 export class Logger {
   private currentLevel: LogLevel = LogLevel.Debug;
   private showTime: boolean;
   private format: LogFormat;
   private serializationOptions: ResolvedLoggerSerializationOptions;
+  private prefix: string;
   private readonly styleOptionKeys = new Set([
     "color",
     "bgColor",
@@ -266,6 +280,7 @@ export class Logger {
     this.format = options.format ?? "pretty";
     this.currentLevel = options.logLevel ?? LogLevel.Debug;
     this.serializationOptions = resolveSerializationOptions(options.serialization);
+    this.prefix = options.prefix?.trim() ?? "";
   }
 
   setLevel(level: LogLevel) {
@@ -276,8 +291,52 @@ export class Logger {
     return this.currentLevel;
   }
 
+  child(options: LoggerChildOptions = {}): Logger {
+    return new Logger({
+      showTime: this.showTime,
+      format: this.format,
+      logLevel: this.currentLevel,
+      serialization: {
+        depth: this.serializationOptions.depth,
+        inspect: {
+          depth: this.serializationOptions.inspect.depth,
+          compact: this.serializationOptions.inspect.compact,
+        },
+      },
+      prefix: combinePrefixes(this.prefix, options.prefix),
+    });
+  }
+
   private shouldLog(level: LogLevel): boolean {
     return levelPriority[level] >= levelPriority[this.currentLevel];
+  }
+
+  private withPrefixedArgs(args: string[]): string[] {
+    if (!this.prefix) {
+      return args;
+    }
+
+    if (args.length === 0) {
+      return [this.prefix];
+    }
+
+    return [`${this.prefix} ${args[0]}`, ...args.slice(1)];
+  }
+
+  private withPrefixedSerializableArgs(args: unknown[]): unknown[] {
+    if (!this.prefix) {
+      return args;
+    }
+
+    if (args.length === 0) {
+      return [this.prefix];
+    }
+
+    if (typeof args[0] === "string") {
+      return [`${this.prefix} ${args[0]}`, ...args.slice(1)];
+    }
+
+    return [this.prefix, ...args];
   }
 
   private isStyleOptionsCandidate(obj: unknown): obj is StyleOptions {
@@ -348,9 +407,14 @@ export class Logger {
     if (!this.shouldLog(level)) return;
 
     const output = level === LogLevel.Error ? console.error : console.log;
+    const formattedArgs = this.withPrefixedArgs(
+      args.map((arg) => format(arg, this.serializationOptions)),
+    );
 
     if (this.format === "json") {
-      const serializedArgs = args.map((arg) => toSerializable(arg, this.serializationOptions));
+      const serializedArgs = this.withPrefixedSerializableArgs(
+        args.map((arg) => toSerializable(arg, this.serializationOptions)),
+      );
       const firstError = args.find((arg): arg is Error => arg instanceof Error);
 
       const payload: {
@@ -362,7 +426,7 @@ export class Logger {
       } = {
         level,
         time: timestamp(),
-        message: args.map((arg) => format(arg, this.serializationOptions)).join(" "),
+        message: formattedArgs.join(" "),
         args: serializedArgs,
       };
 
@@ -380,10 +444,7 @@ export class Logger {
     const prefix = styled.bold[color](`[${label}]`);
     const time = this.showTime ? (shouldUseColor() ? styled.dim(timestamp()) : timestamp()) : "";
 
-    output(
-      `${prefix}${this.showTime ? " " + time : ""}`,
-      ...args.map((arg) => format(arg, this.serializationOptions)),
-    );
+    output(`${prefix}${this.showTime ? " " + time : ""}`, ...formattedArgs);
   }
 
   log(...args: unknown[]) {
@@ -405,9 +466,30 @@ export class Logger {
           s = s[mod];
         }
       }
-      console.log(s(args.map((arg) => format(arg, this.serializationOptions)).join(" ")));
+      console.log(
+        s(
+          this.withPrefixedArgs(args.map((arg) => format(arg, this.serializationOptions))).join(
+            " ",
+          ),
+        ),
+      );
     } else {
-      console.log(...args);
+      if (!this.prefix) {
+        console.log(...args);
+        return;
+      }
+
+      if (args.length === 0) {
+        console.log(this.prefix);
+        return;
+      }
+
+      if (typeof args[0] === "string") {
+        console.log(`${this.prefix} ${args[0]}`, ...args.slice(1));
+        return;
+      }
+
+      console.log(this.prefix, ...args);
     }
   }
 
@@ -432,7 +514,11 @@ export class Logger {
   }
 }
 
-const baseLogger = new Logger({ showTime: true });
+export function createLogger(options: LoggerOptions = {}): Logger {
+  return new Logger(options);
+}
+
+const baseLogger = createLogger({ showTime: true });
 
 type LoggerStyledCallable = (text: string) => void;
 type LoggerStyledChain = LoggerStyledCallable & typeof styled;

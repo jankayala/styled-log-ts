@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
-import { logger, Logger, LogLevel } from "@/index";
+import { logger, Logger, LogLevel, createLogger } from "@/index";
 import { styled } from "@/styled";
 
 describe("Logger", () => {
@@ -102,6 +102,124 @@ describe("Logger", () => {
         expect(logSpy).toHaveBeenCalledTimes(1);
         expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
       });
+    });
+  });
+
+  describe("factory and child loggers", () => {
+    it("creates configured instances via createLogger", () => {
+      const customLogger = createLogger({
+        showTime: false,
+        logLevel: LogLevel.Warn,
+      });
+
+      customLogger.info("hidden");
+      customLogger.warn("visible");
+
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
+    });
+
+    it("inherits parent options and prepends child prefix", () => {
+      const parent = createLogger({
+        showTime: true,
+        logLevel: LogLevel.Info,
+      });
+      const child = parent.child({ prefix: "[db]" });
+
+      child.debug("hidden");
+      child.info("connected");
+
+      const expectedPrefix = `\x1b[34m\x1b[1m[INFO]\x1b[22m\x1b[39m`;
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy).toHaveBeenCalledWith(
+        `${expectedPrefix} \x1b[2m${FIXED_DATE}\x1b[22m`,
+        "[db] connected",
+      );
+    });
+
+    it("combines nested child prefixes", () => {
+      const nestedChild = createLogger().child({ prefix: "[api]" }).child({ prefix: "[db]" });
+
+      nestedChild.info("up");
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "[api] [db] up");
+    });
+
+    it("applies child prefix in json mode", () => {
+      const child = createLogger({ format: "json" }).child({ prefix: "[worker]" });
+
+      child.info("job started", { id: 1 });
+
+      const line = logSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as {
+        message: string;
+        args: unknown[];
+      };
+
+      expect(parsed.message).toBe('[worker] job started {\n  "id": 1\n}');
+      expect(parsed.args).toEqual(["[worker] job started", { id: 1 }]);
+    });
+
+    it("logs only the child prefix when a pretty child logger is called without arguments", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.info();
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "[worker]");
+    });
+
+    it("keeps only the child prefix in json mode when called without arguments", () => {
+      const child = createLogger({ format: "json" }).child({ prefix: "[worker]" });
+
+      child.info();
+
+      const line = logSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as {
+        message: string;
+        args: unknown[];
+      };
+
+      expect(parsed.message).toBe("[worker]");
+      expect(parsed.args).toEqual(["[worker]"]);
+    });
+
+    it("prepends the child prefix as a separate json arg when the first value is not a string", () => {
+      const child = createLogger({ format: "json" }).child({ prefix: "[worker]" });
+
+      child.info({ id: 1 });
+
+      const line = logSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as {
+        message: string;
+        args: unknown[];
+      };
+
+      expect(parsed.message).toBe('[worker] {\n  "id": 1\n}');
+      expect(parsed.args).toEqual(["[worker]", { id: 1 }]);
+    });
+
+    it("applies child prefix for log()", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.log("manual", { id: 7 });
+
+      expect(logSpy).toHaveBeenCalledWith("[worker] manual", { id: 7 });
+    });
+
+    it("logs only the child prefix for log() without arguments", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.log();
+
+      expect(logSpy).toHaveBeenCalledWith("[worker]");
+    });
+
+    it("prepends the child prefix as a separate value for log() when the first arg is not a string", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.log({ id: 7 });
+
+      expect(logSpy).toHaveBeenCalledWith("[worker]", { id: 7 });
     });
   });
 

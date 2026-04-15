@@ -30,35 +30,37 @@ npm install styled-log-ts@latest --save
 `logger` is a ready-to-use singleton with timestamps enabled by default.
 
 ```ts
-import { logger } from "styled-log-ts";
+import { createLogger } from "styled-log-ts";
 
+const logger = createLogger({ showTime: true });
+
+logger.debug("Debug info");
 logger.info("Hello world");
 logger.success("Operation completed");
 logger.warn("This is a warning");
 logger.error("Something went wrong");
-logger.debug("Debug info");
 ```
 
 ### Creating Custom Logger Instances
 
 ```ts
-import { Logger } from "styled-log-ts";
+import { createLogger } from "styled-log-ts";
 
 // Logger without timestamps (default)
-const logger1 = new Logger();
+const logger1 = createLogger();
 logger1.info("No timestamp"); // [INFO] No timestamp
 
 // Logger with timestamps
-const logger2 = new Logger({ showTime: true });
+const logger2 = createLogger({ showTime: true });
 logger2.info("With timestamp"); // [INFO] 2026-01-01T12:30:45.123Z With timestamp
 
 // JSON / NDJSON mode for production pipelines
-const logger3 = new Logger({ format: "json" });
+const logger3 = createLogger({ format: "json" });
 logger3.info("service started", { port: 3000 });
 // {"level":"info","time":"2026-01-01T12:30:45.123Z","message":"service started {\n  \"port\": 3000\n}","args":["service started",{"port":3000}]}
 
 // Configure nested object serialization and inspect fallback
-const logger4 = new Logger({
+const logger4 = createLogger({
   serialization: {
     depth: 2,
     inspect: {
@@ -70,6 +72,24 @@ const logger4 = new Logger({
 
 logger4.info({ deeply: { nested: { value: 42 } } });
 // [INFO] {"deeply":{"nested":"[Object]"}}
+```
+
+### Child Loggers
+
+```ts
+import { createLogger } from "styled-log-ts";
+
+const logger = createLogger({ showTime: true });
+const dbLogger = logger.child({ prefix: "[db]" });
+const sqlLogger = dbLogger.child({ prefix: "[sql]" });
+
+dbLogger.info("connected");
+// [INFO] ... [db] connected
+
+sqlLogger.warn("slow query", { durationMs: 1200 });
+// [WARN] ... [db] [sql] slow query {
+//   "durationMs": 1200
+// }
 ```
 
 ### CommonJS
@@ -197,6 +217,18 @@ A pre-configured `Logger` instance with timestamps enabled.
 import { logger } from "styled-log-ts";
 ```
 
+### `createLogger` (recommended entry point)
+
+```text
+createLogger(options?: LoggerOptions): Logger
+```
+
+```ts
+import { createLogger } from "styled-log-ts";
+
+const logger = createLogger({ showTime: true, logLevel: "info" });
+```
+
 ### `Logger` Constructor
 
 ```text
@@ -228,6 +260,7 @@ new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?
 | -------------------- | --------------------------------------- |
 | `setLevel(level)`    | Set minimum log level                   |
 | `getLevel()`         | Get current log level                   |
+| `child({ prefix })`  | Create a child logger with fixed prefix |
 | `debug(...args)`     | Debug message (magenta)                 |
 | `info(...args)`      | Informational message (blue)            |
 | `success(...args)`   | Success message (green)                 |
