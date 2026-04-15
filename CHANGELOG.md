@@ -15,11 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `npm run format` script to auto-format code
 - `npm run format:check` script for CI validation
 - Format validation step in CI workflow (`npm run format:check` before build/test)
+- `.github/dependabot.yml` for automated npm and GitHub Actions update PRs
 
 ### Changed
 
 - CI job order: `install` → `format:check` → `build` → `test` → `coverage`
 - Added coverage thresholds in `vite.config.ts` (95% lines/functions/branches/statements)
+- Pinned GitHub Actions in `ci.yml` to full commit SHAs for better supply-chain safety
+
+### Security
+
+- Added `npm audit --audit-level=high` as a mandatory CI step to fail on High/Critical advisories
+- Enabled Dependabot update checks for both npm dependencies and GitHub Actions
 
 ### Documentation
 
