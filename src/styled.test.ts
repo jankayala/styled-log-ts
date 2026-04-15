@@ -1,13 +1,4 @@
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   styled,
   type ColorName,
@@ -90,8 +81,7 @@ describe("styled", () => {
     });
 
     const colorCases = Object.entries(COLOR_CODES).map(
-      ([color, [open, close]]) =>
-        [color, open, close] as [ColorName, number, number],
+      ([color, [open, close]]) => [color, open, close] as [ColorName, number, number],
     );
 
     it.each(colorCases)(
@@ -113,21 +103,15 @@ describe("styled", () => {
     });
 
     it("should apply rgb foreground colors", () => {
-      expect(styled.rgb(50, 50, 50)("Hello")).toBe(
-        "\x1b[38;2;50;50;50mHello\x1b[39m",
-      );
+      expect(styled.rgb(50, 50, 50)("Hello")).toBe("\x1b[38;2;50;50;50mHello\x1b[39m");
     });
 
     it("should apply hex foreground colors", () => {
-      expect(styled.hex("#336699")("Hello")).toBe(
-        "\x1b[38;2;51;102;153mHello\x1b[39m",
-      );
+      expect(styled.hex("#336699")("Hello")).toBe("\x1b[38;2;51;102;153mHello\x1b[39m");
     });
 
     it("should expand shorthand hex foreground colors", () => {
-      expect(styled.hex("#abc")("Hello")).toBe(
-        "\x1b[38;2;170;187;204mHello\x1b[39m",
-      );
+      expect(styled.hex("#abc")("Hello")).toBe("\x1b[38;2;170;187;204mHello\x1b[39m");
     });
 
     it("should reject invalid rgb and hex inputs", () => {
@@ -152,8 +136,7 @@ describe("styled", () => {
     });
 
     const bgColorCases = Object.entries(BG_COLOR_CODES).map(
-      ([bgColor, [open, close]]) =>
-        [bgColor, open, close] as [BgColorName, number, number],
+      ([bgColor, [open, close]]) => [bgColor, open, close] as [BgColorName, number, number],
     );
 
     it.each(bgColorCases)(
@@ -175,15 +158,11 @@ describe("styled", () => {
     });
 
     it("should apply rgb background colors", () => {
-      expect(styled.bgRgb(10, 20, 30)("Hello")).toBe(
-        "\x1b[48;2;10;20;30mHello\x1b[49m",
-      );
+      expect(styled.bgRgb(10, 20, 30)("Hello")).toBe("\x1b[48;2;10;20;30mHello\x1b[49m");
     });
 
     it("should apply hex background colors", () => {
-      expect(styled.bgHex("#102030")("Hello")).toBe(
-        "\x1b[48;2;16;32;48mHello\x1b[49m",
-      );
+      expect(styled.bgHex("#102030")("Hello")).toBe("\x1b[48;2;16;32;48mHello\x1b[49m");
     });
   });
 
@@ -194,8 +173,7 @@ describe("styled", () => {
     });
 
     const modifierCases = Object.entries(MODIFIER_CODES).map(
-      ([modifier, [open, close]]) =>
-        [modifier, open, close] as [ModifierName, number, number],
+      ([modifier, [open, close]]) => [modifier, open, close] as [ModifierName, number, number],
     );
 
     it.each(modifierCases)(

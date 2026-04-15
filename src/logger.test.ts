@@ -1,13 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-  beforeAll,
-  afterAll,
-} from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { logger, Logger, LogLevel } from "@/index";
 import { styled } from "@/styled";
 
@@ -109,10 +100,7 @@ describe("Logger", () => {
         withLevelLogger.warn("visible");
 
         expect(logSpy).toHaveBeenCalledTimes(1);
-        expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining("[WARN]"),
-          "visible",
-        );
+        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
       });
     });
   });
@@ -181,10 +169,7 @@ describe("Logger", () => {
       const line = logSpy.mock.calls[0][0] as string;
       const parsed = JSON.parse(line) as { args: unknown[] };
 
-      expect(parsed.args).toEqual([
-        { "[Map]": [["key", 1]] },
-        { "[Set]": [2, 3] },
-      ]);
+      expect(parsed.args).toEqual([{ "[Map]": [["key", 1]] }, { "[Set]": [2, 3] }]);
     });
 
     it("routes json errors to stderr and non-errors to stdout", () => {
@@ -261,10 +246,7 @@ describe("Logger", () => {
 
       const expectedPrefix = `\x1b[32m\x1b[1m[SUCCESS]\x1b[22m\x1b[39m`;
 
-      expect(logSpy).toHaveBeenCalledWith(
-        `${expectedPrefix} \x1b[2m${FIXED_DATE}\x1b[22m`,
-        `ok`,
-      );
+      expect(logSpy).toHaveBeenCalledWith(`${expectedPrefix} \x1b[2m${FIXED_DATE}\x1b[22m`, `ok`);
     });
 
     it("logs warn with correct color", () => {
@@ -323,9 +305,7 @@ describe("Logger", () => {
 
     it("log() with multiple args and options", () => {
       logger.log("arg1", "arg2", { color: "red" });
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("\x1b[31marg1 arg2\x1b[39m"),
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("\x1b[31marg1 arg2\x1b[39m"));
     });
 
     it("handles null or non-object options in log()", () => {
@@ -342,28 +322,19 @@ describe("Logger", () => {
     it("formats undefined explicitly", () => {
       logger.info(undefined);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "undefined",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "undefined");
     });
 
     it("formats null explicitly", () => {
       logger.info(null);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "null",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "null");
     });
 
     it("formats Symbol values explicitly", () => {
       logger.info(Symbol("x"));
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "Symbol(x)",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "Symbol(x)");
     });
 
     it("formats function values explicitly", () => {
@@ -393,28 +364,19 @@ describe("Logger", () => {
     it("formats Date values explicitly", () => {
       logger.info(new Date(FIXED_DATE));
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        FIXED_DATE,
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), FIXED_DATE);
     });
 
     it("formats invalid Date values explicitly", () => {
       logger.info(new Date(Number.NaN));
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "Invalid Date",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "Invalid Date");
     });
 
     it("formats RegExp values explicitly", () => {
       logger.info(/hello/gi);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "/hello/gi",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "/hello/gi");
     });
 
     it("formats array values explicitly", () => {
@@ -496,10 +458,7 @@ describe("Logger", () => {
     it("formats primitive BigInt values", () => {
       logger.info(99n);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "99n",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "99n");
     });
 
     it("formats Error values and falls back when stack is missing", () => {
@@ -508,10 +467,7 @@ describe("Logger", () => {
 
       logger.error(err);
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[ERROR]"),
-        "Error: boom",
-      );
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR]"), "Error: boom");
     });
 
     it("serializes nested Error objects", () => {
@@ -603,9 +559,9 @@ describe("Logger", () => {
     });
 
     it("throws a clear error for invalid rgb style options", () => {
-      expect(() =>
-        logger.log("bad rgb", { rgb: [1, Number.POSITIVE_INFINITY, 3] as any }),
-      ).toThrow("`rgb` must be a tuple with 3 finite numbers.");
+      expect(() => logger.log("bad rgb", { rgb: [1, Number.POSITIVE_INFINITY, 3] as any })).toThrow(
+        "`rgb` must be a tuple with 3 finite numbers.",
+      );
     });
 
     it("throws a clear error for invalid bgRgb style options", () => {
@@ -623,9 +579,9 @@ describe("Logger", () => {
     });
 
     it("throws a clear error for unknown background color names", () => {
-      expect(() =>
-        logger.log("bad bg color", { bgColor: "bgNope" as any }),
-      ).toThrow("Unknown background color: bgNope");
+      expect(() => logger.log("bad bg color", { bgColor: "bgNope" as any })).toThrow(
+        "Unknown background color: bgNope",
+      );
     });
 
     it("throws a clear error for invalid hex style options", () => {
@@ -641,15 +597,15 @@ describe("Logger", () => {
     });
 
     it("throws a clear error for empty modifiers arrays", () => {
-      expect(() =>
-        logger.log("bad empty modifiers", { modifiers: [] as any }),
-      ).toThrow("`modifiers` must contain at least one modifier.");
+      expect(() => logger.log("bad empty modifiers", { modifiers: [] as any })).toThrow(
+        "`modifiers` must contain at least one modifier.",
+      );
     });
 
     it("throws a clear error for invalid modifier names", () => {
-      expect(() =>
-        logger.log("bad mod", { modifiers: ["bold", "nope"] as any }),
-      ).toThrow("Unknown modifier: nope");
+      expect(() => logger.log("bad mod", { modifiers: ["bold", "nope"] as any })).toThrow(
+        "Unknown modifier: nope",
+      );
     });
   });
 
@@ -694,17 +650,13 @@ describe("Logger", () => {
       it("supports log() with hex style options", () => {
         logger.log("hex option", { hex: "#102030" });
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[38;2;16;32;48mhex option\x1b[39m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[38;2;16;32;48mhex option\x1b[39m");
       });
 
       it("supports log() with bgRgb style options", () => {
         logger.log("bg rgb option", { bgRgb: [4, 5, 6] });
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[48;2;4;5;6mbg rgb option\x1b[49m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[48;2;4;5;6mbg rgb option\x1b[49m");
       });
 
       it("supports log() with rgb and bgHex style options", () => {
@@ -764,33 +716,25 @@ describe("Logger", () => {
       it("supports rgb text styling that logs automatically", () => {
         logger.rgb(50, 50, 50)("rgb colored text");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[38;2;50;50;50mrgb colored text\x1b[39m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[38;2;50;50;50mrgb colored text\x1b[39m");
       });
 
       it("supports rgb background styling that logs automatically", () => {
         logger.bgRgb(50, 50, 50)("rgb colored background");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[48;2;50;50;50mrgb colored background\x1b[49m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[48;2;50;50;50mrgb colored background\x1b[49m");
       });
 
       it("supports hex text styling that logs automatically", () => {
         logger.hex("#336699")("hex colored text");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[38;2;51;102;153mhex colored text\x1b[39m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[38;2;51;102;153mhex colored text\x1b[39m");
       });
 
       it("supports hex background styling that logs automatically", () => {
         logger.bgHex("#102030")("hex colored background");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[48;2;16;32;48mhex colored background\x1b[49m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[48;2;16;32;48mhex colored background\x1b[49m");
       });
     });
   });

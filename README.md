@@ -1,5 +1,7 @@
 # styled-log-ts
 
+[![CI](https://github.com/jankayala/styled-log-ts/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jankayala/styled-log-ts/actions/workflows/ci.yml)
+
 A lightweight logger for Node.js/TypeScript that supports:
 
 - 🎨 ANSI color formatting with automatic color detection
@@ -282,6 +284,20 @@ type StyleOptions = {
 ### Available Modifiers (`ModifierName`)
 
 `bold` · `dim` · `italic` · `underline` · `inverse` · `hidden` · `strikethrough` · `overline`
+
+---
+
+## Consistent Formatting (Any IDE)
+
+This project uses `Prettier` and `EditorConfig`, so formatting stays the same in other editors.
+
+```bash
+npm run format
+npm run format:check
+```
+
+- `npm run format` rewrites files to the project style.
+- `npm run format:check` validates formatting (used in CI).
 
 ---
 

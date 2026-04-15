@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `.editorconfig` for consistent formatting across all IDEs (IntelliJ, VS Code, etc.)
+- `.prettierrc.json` for deterministic code style enforcement (100 char line width, trailing commas, double quotes)
+- `.prettierignore` for excluding build artifacts and generated files
+- `npm run format` script to auto-format code
+- `npm run format:check` script for CI validation
+- Format validation step in CI workflow (`npm run format:check` before build/test)
+
+### Changed
+
+- CI job order: `install` → `format:check` → `build` → `test` → `coverage`
+- Added coverage thresholds in `vite.config.ts` (95% lines/functions/branches/statements)
+
+### Documentation
+
+- Added "Consistent Formatting (Any IDE)" section to README with format commands
+
+---
+
 ## [1.0.7] - 2026.04.14
 
 ### Added

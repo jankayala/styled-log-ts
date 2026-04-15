@@ -45,6 +45,8 @@
     "LICENSE"
   ],
   "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "build": "tsdown",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
@@ -53,6 +55,7 @@
   "devDependencies": {
     "@types/node": "25.6.0",
     "@vitest/coverage-v8": "4.1.4",
+    "prettier": "3.8.2",
     "tsdown": "0.21.8",
     "typescript": "6.0.2",
     "vitest": "4.1.4"

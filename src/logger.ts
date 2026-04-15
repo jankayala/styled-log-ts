@@ -73,26 +73,18 @@ function resolveSerializationOptions(
   options?: LoggerSerializationOptions,
 ): ResolvedLoggerSerializationOptions {
   return {
-    depth: normalizeNonNegativeInteger(
-      options?.depth,
-      DEFAULT_SERIALIZATION_OPTIONS.depth,
-    ),
+    depth: normalizeNonNegativeInteger(options?.depth, DEFAULT_SERIALIZATION_OPTIONS.depth),
     inspect: {
       depth: normalizeNonNegativeInteger(
         options?.inspect?.depth,
         DEFAULT_SERIALIZATION_OPTIONS.inspect.depth,
       ),
-      compact:
-        options?.inspect?.compact ??
-        DEFAULT_SERIALIZATION_OPTIONS.inspect.compact,
+      compact: options?.inspect?.compact ?? DEFAULT_SERIALIZATION_OPTIONS.inspect.compact,
     },
   };
 }
 
-function inspectFallback(
-  value: unknown,
-  options: ResolvedLoggerSerializationOptions,
-): string {
+function inspectFallback(value: unknown, options: ResolvedLoggerSerializationOptions): string {
   return inspect(value, {
     depth: options.inspect.depth,
     colors: false,
@@ -178,9 +170,7 @@ function toSerializable(
 
   try {
     if (Array.isArray(value)) {
-      return value.map((item) =>
-        toSerializable(item, options, depth + 1, seen),
-      );
+      return value.map((item) => toSerializable(item, options, depth + 1, seen));
     }
 
     if (value instanceof Map) {
@@ -232,10 +222,7 @@ function toSerializable(
   }
 }
 
-function format(
-  message: unknown,
-  options: ResolvedLoggerSerializationOptions,
-): string {
+function format(message: unknown, options: ResolvedLoggerSerializationOptions): string {
   if (message instanceof Error) {
     return message.stack ?? `${message.name}: ${message.message}`;
   }
@@ -246,11 +233,7 @@ function format(
     return serialized;
   }
 
-  if (
-    serialized === null ||
-    typeof serialized === "number" ||
-    typeof serialized === "boolean"
-  ) {
+  if (serialized === null || typeof serialized === "number" || typeof serialized === "boolean") {
     return String(serialized);
   }
 
@@ -282,9 +265,7 @@ export class Logger {
     this.showTime = options.showTime ?? false;
     this.format = options.format ?? "pretty";
     this.currentLevel = options.logLevel ?? LogLevel.Debug;
-    this.serializationOptions = resolveSerializationOptions(
-      options.serialization,
-    );
+    this.serializationOptions = resolveSerializationOptions(options.serialization);
   }
 
   setLevel(level: LogLevel) {
@@ -320,9 +301,7 @@ export class Logger {
     }
 
     if (options.bgColor && !(options.bgColor in BG_COLOR_CODES)) {
-      throw new TypeError(
-        `Unknown background color: ${String(options.bgColor)}`,
-      );
+      throw new TypeError(`Unknown background color: ${String(options.bgColor)}`);
     }
 
     if (options.rgb && !this.isRgbTriplet(options.rgb)) {
@@ -343,9 +322,7 @@ export class Logger {
     }
 
     if (options.modifiers) {
-      const modifiers = Array.isArray(options.modifiers)
-        ? options.modifiers
-        : [options.modifiers];
+      const modifiers = Array.isArray(options.modifiers) ? options.modifiers : [options.modifiers];
 
       if (modifiers.length === 0) {
         throw new TypeError("`modifiers` must contain at least one modifier.");
@@ -373,9 +350,7 @@ export class Logger {
     const output = level === LogLevel.Error ? console.error : console.log;
 
     if (this.format === "json") {
-      const serializedArgs = args.map((arg) =>
-        toSerializable(arg, this.serializationOptions),
-      );
+      const serializedArgs = args.map((arg) => toSerializable(arg, this.serializationOptions));
       const firstError = args.find((arg): arg is Error => arg instanceof Error);
 
       const payload: {
@@ -387,9 +362,7 @@ export class Logger {
       } = {
         level,
         time: timestamp(),
-        message: args
-          .map((arg) => format(arg, this.serializationOptions))
-          .join(" "),
+        message: args.map((arg) => format(arg, this.serializationOptions)).join(" "),
         args: serializedArgs,
       };
 
@@ -405,11 +378,7 @@ export class Logger {
     const label = level.toUpperCase();
 
     const prefix = styled.bold[color](`[${label}]`);
-    const time = this.showTime
-      ? shouldUseColor()
-        ? styled.dim(timestamp())
-        : timestamp()
-      : "";
+    const time = this.showTime ? (shouldUseColor() ? styled.dim(timestamp()) : timestamp()) : "";
 
     output(
       `${prefix}${this.showTime ? " " + time : ""}`,
@@ -418,8 +387,7 @@ export class Logger {
   }
 
   log(...args: unknown[]) {
-    const hasOptions =
-      args.length > 1 && this.isStyleOptionsCandidate(args[args.length - 1]);
+    const hasOptions = args.length > 1 && this.isStyleOptionsCandidate(args[args.length - 1]);
     if (hasOptions) {
       const options = args.pop() as StyleOptions;
       this.validateStyleOptions(options);
@@ -432,16 +400,12 @@ export class Logger {
       if (options.hex) s = s.hex(options.hex);
       if (options.bgHex) s = s.bgHex(options.bgHex);
       if (options.modifiers) {
-        const mods = Array.isArray(options.modifiers)
-          ? options.modifiers
-          : [options.modifiers];
+        const mods = Array.isArray(options.modifiers) ? options.modifiers : [options.modifiers];
         for (const mod of mods) {
           s = s[mod];
         }
       }
-      console.log(
-        s(args.map((arg) => format(arg, this.serializationOptions)).join(" ")),
-      );
+      console.log(s(args.map((arg) => format(arg, this.serializationOptions)).join(" ")));
     } else {
       console.log(...args);
     }
@@ -475,9 +439,7 @@ type LoggerStyledChain = LoggerStyledCallable & typeof styled;
 
 export type StyledLogger = Logger & typeof styled;
 
-function createLoggerStyled(
-  currentStyle: typeof styled = styled,
-): LoggerStyledChain {
+function createLoggerStyled(currentStyle: typeof styled = styled): LoggerStyledChain {
   const fn: LoggerStyledCallable = (text: string) => {
     console.log(currentStyle(text));
   };

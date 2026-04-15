@@ -4,10 +4,7 @@ import { styled } from "@/styled";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-function withEnv(
-  overrides: Record<string, string | undefined>,
-  fn: () => void,
-) {
+function withEnv(overrides: Record<string, string | undefined>, fn: () => void) {
   const saved: Record<string, string | undefined> = {};
 
   for (const [key, value] of Object.entries(overrides)) {
@@ -46,9 +43,7 @@ describe("shouldUseColor", () => {
   });
 
   it("returns false when NO_COLOR is set to a non-empty string", () => {
-    withEnv({ NO_COLOR: "1", FORCE_COLOR: undefined }, () =>
-      expect(shouldUseColor()).toBe(false),
-    );
+    withEnv({ NO_COLOR: "1", FORCE_COLOR: undefined }, () => expect(shouldUseColor()).toBe(false));
   });
 
   it("returns false when NO_COLOR is set regardless of its value", () => {
@@ -63,15 +58,11 @@ describe("shouldUseColor", () => {
       writable: true,
       configurable: true,
     });
-    withEnv({ NO_COLOR: undefined, FORCE_COLOR: "1" }, () =>
-      expect(shouldUseColor()).toBe(true),
-    );
+    withEnv({ NO_COLOR: undefined, FORCE_COLOR: "1" }, () => expect(shouldUseColor()).toBe(true));
   });
 
   it("NO_COLOR takes precedence over FORCE_COLOR", () => {
-    withEnv({ NO_COLOR: "1", FORCE_COLOR: "1" }, () =>
-      expect(shouldUseColor()).toBe(false),
-    );
+    withEnv({ NO_COLOR: "1", FORCE_COLOR: "1" }, () => expect(shouldUseColor()).toBe(false));
   });
 
   it("returns true in a TTY environment without env overrides", () => {
@@ -141,9 +132,7 @@ describe("stripAnsi", () => {
   });
 
   it("removes multiple sequences in one string", () => {
-    expect(stripAnsi("\x1b[1m\x1b[31mBold Red\x1b[39m\x1b[22m")).toBe(
-      "Bold Red",
-    );
+    expect(stripAnsi("\x1b[1m\x1b[31mBold Red\x1b[39m\x1b[22m")).toBe("Bold Red");
   });
 
   it("returns empty string unchanged", () => {

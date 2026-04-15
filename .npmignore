@@ -23,6 +23,7 @@ RELEASING.md
 
 # IDE
 .idea/
+.vscode/
 *.swp
 *.swo
 
