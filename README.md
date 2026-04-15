@@ -7,6 +7,7 @@ A lightweight logger for Node.js/TypeScript that supports:
 - 🎨 ANSI color formatting with automatic color detection
 - 🌈 Color policy: respects `NO_COLOR`, `FORCE_COLOR`, and TTY detection
 - 🏷️ Log levels (`debug`, `info`, `success`, `warn`, `error`)
+- 🧪 Custom per-level labels and colors
 - ✨ Text styling (bold, underline, italic, and more)
 - 🕒 ISO timestamps
 - 🧱 Structured NDJSON mode (`format: "json"`)
@@ -72,6 +73,15 @@ const logger4 = createLogger({
 
 logger4.info({ deeply: { nested: { value: 42 } } });
 // [INFO] {"deeply":{"nested":"[Object]"}}
+
+// Override level colors and labels
+const logger5 = createLogger({
+  levelColors: { error: "cyan" },
+  levelLabels: { error: "FAIL" },
+});
+
+logger5.error("database unavailable");
+// [FAIL] database unavailable
 ```
 
 ### Child Loggers
@@ -233,17 +243,19 @@ const logger = createLogger({ showTime: true, logLevel: "info" });
 
 ```text
 new Logger()
-new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?: LogLevel; serialization?: { depth?: number; inspect?: { depth?: number; compact?: boolean | number } } })
+new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?: LogLevel; serialization?: { depth?: number; inspect?: { depth?: number; compact?: boolean | number } }; levelColors?: Partial<Record<LogLevel, ColorName>>; levelLabels?: Partial<Record<LogLevel, string>> })
 ```
 
-| Parameter                       | Type                 | Default    | Description                                                               |
-| ------------------------------- | -------------------- | ---------- | ------------------------------------------------------------------------- |
-| `showTime`                      | `boolean`            | `false`    | Include ISO timestamp prefix (pretty mode)                                |
-| `format`                        | `"pretty" \| "json"` | `"pretty"` | Output mode (`json` emits one NDJSON line per call)                       |
-| `logLevel`                      | `LogLevel`           | `"debug"`  | Initial minimum log level                                                 |
-| `serialization.depth`           | `number`             | `4`        | Maximum nesting depth before objects/arrays are collapsed to placeholders |
-| `serialization.inspect.depth`   | `number`             | `4`        | `inspect()` depth used for fallback formatting                            |
-| `serialization.inspect.compact` | `boolean \| number`  | `false`    | `inspect()` compactness for fallback formatting                           |
+| Parameter                       | Type                                   | Default               | Description                                                                       |
+| ------------------------------- | -------------------------------------- | --------------------- | --------------------------------------------------------------------------------- |
+| `showTime`                      | `boolean`                              | `false`               | Include ISO timestamp prefix (pretty mode)                                        |
+| `format`                        | `"pretty" \| "json"`                   | `"pretty"`            | Output mode (`json` emits one NDJSON line per call)                               |
+| `logLevel`                      | `LogLevel`                             | `"debug"`             | Initial minimum log level                                                         |
+| `levelColors`                   | `Partial<Record<LogLevel, ColorName>>` | defaults per level    | Override per-level pretty output colors (`debug`,`info`,`success`,`warn`,`error`) |
+| `levelLabels`                   | `Partial<Record<LogLevel, string>>`    | uppercase level names | Override per-level pretty output labels                                           |
+| `serialization.depth`           | `number`                               | `4`                   | Maximum nesting depth before objects/arrays are collapsed to placeholders         |
+| `serialization.inspect.depth`   | `number`                               | `4`                   | `inspect()` depth used for fallback formatting                                    |
+| `serialization.inspect.compact` | `boolean \| number`                    | `false`               | `inspect()` compactness for fallback formatting                                   |
 
 ### Serialization behavior
 
@@ -256,17 +268,17 @@ new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?
 
 ### Logger Methods
 
-| Method               | Description                             |
-| -------------------- | --------------------------------------- |
-| `setLevel(level)`    | Set minimum log level                   |
-| `getLevel()`         | Get current log level                   |
-| `child({ prefix })`  | Create a child logger with fixed prefix |
-| `debug(...args)`     | Debug message (magenta)                 |
-| `info(...args)`      | Informational message (blue)            |
-| `success(...args)`   | Success message (green)                 |
-| `warn(...args)`      | Warning message (yellow)                |
-| `error(...args)`     | Error message (red)                     |
-| `log(text, options)` | Custom styled output via `StyleOptions` |
+| Method               | Description                                 |
+| -------------------- | ------------------------------------------- |
+| `setLevel(level)`    | Set minimum log level                       |
+| `getLevel()`         | Get current log level                       |
+| `child({ prefix })`  | Create a child logger with fixed prefix     |
+| `debug(...args)`     | Debug message (default color: magenta)      |
+| `info(...args)`      | Informational message (default color: blue) |
+| `success(...args)`   | Success message (default color: green)      |
+| `warn(...args)`      | Warning message (default color: yellow)     |
+| `error(...args)`     | Error message (default color: red)          |
+| `log(text, options)` | Custom styled output via `StyleOptions`     |
 
 ### Color Utilities
 

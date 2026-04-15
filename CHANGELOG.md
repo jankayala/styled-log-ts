@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/dependabot.yml` for automated npm and GitHub Actions update PRs
 - `createLogger(options)` as the recommended logger factory entry point
 - `Logger.child({ prefix })` for context-aware child loggers with inherited parent options
+- `Logger` options `levelColors` and `levelLabels` for per-level pretty output customization
 - AI contributor guidance in `.github/copilot-instructions.md`
 
 ### Changed
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Child logger prefixes are now applied consistently across `pretty`, `json`, and `log()` output paths
 - Public API guidance now prefers `createLogger(...)` while keeping `Logger` exports stable and typed
 - Expanded `logger.ts` test coverage for child logger prefix edge cases in pretty, JSON, and `log()` paths
+- Invalid `levelColors` values now throw a `TypeError` at logger construction time
 
 ### Security
 

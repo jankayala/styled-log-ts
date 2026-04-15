@@ -1,5 +1,6 @@
 import {
   styled,
+  type ColorName,
   type StyleName,
   ANSI_CODES,
   COLOR_CODES,
@@ -30,12 +31,18 @@ export type LoggerSerializationOptions = {
   inspect?: LoggerInspectOptions;
 };
 
+export type LoggerLevelColors = Partial<Record<LogLevel, ColorName>>;
+
+export type LoggerLevelLabels = Partial<Record<LogLevel, string>>;
+
 export type LoggerOptions = {
   showTime?: boolean;
   format?: LogFormat;
   logLevel?: LogLevel;
   serialization?: LoggerSerializationOptions;
   prefix?: string;
+  levelColors?: LoggerLevelColors;
+  levelLabels?: LoggerLevelLabels;
 };
 
 export type LoggerChildOptions = {
@@ -66,6 +73,22 @@ const DEFAULT_SERIALIZATION_OPTIONS: ResolvedLoggerSerializationOptions = {
     depth: 4,
     compact: false,
   },
+};
+
+const DEFAULT_LEVEL_COLORS: Record<LogLevel, ColorName> = {
+  debug: "magenta",
+  info: "blue",
+  success: "green",
+  warn: "yellow",
+  error: "red",
+};
+
+const DEFAULT_LEVEL_LABELS: Record<LogLevel, string> = {
+  debug: "DEBUG",
+  info: "INFO",
+  success: "SUCCESS",
+  warn: "WARN",
+  error: "ERROR",
 };
 
 function normalizeNonNegativeInteger(value: unknown, fallback: number): number {
@@ -257,12 +280,60 @@ function combinePrefixes(parentPrefix: string, childPrefix?: string): string {
   return segments.join(" ");
 }
 
+function resolveLevelColors(levelColors?: LoggerLevelColors): Record<LogLevel, ColorName> {
+  const resolved: Record<LogLevel, ColorName> = {
+    ...DEFAULT_LEVEL_COLORS,
+  };
+
+  if (!levelColors) {
+    return resolved;
+  }
+
+  for (const level of Object.values(LogLevel)) {
+    const color = levelColors[level];
+    if (color === undefined) {
+      continue;
+    }
+
+    if (!(color in COLOR_CODES)) {
+      throw new TypeError(`Unknown color for level "${level}": ${String(color)}`);
+    }
+
+    resolved[level] = color;
+  }
+
+  return resolved;
+}
+
+function resolveLevelLabels(levelLabels?: LoggerLevelLabels): Record<LogLevel, string> {
+  const resolved: Record<LogLevel, string> = {
+    ...DEFAULT_LEVEL_LABELS,
+  };
+
+  if (!levelLabels) {
+    return resolved;
+  }
+
+  for (const level of Object.values(LogLevel)) {
+    const label = levelLabels[level];
+    if (label === undefined) {
+      continue;
+    }
+
+    resolved[level] = String(label);
+  }
+
+  return resolved;
+}
+
 export class Logger {
   private currentLevel: LogLevel = LogLevel.Debug;
   private showTime: boolean;
   private format: LogFormat;
   private serializationOptions: ResolvedLoggerSerializationOptions;
   private prefix: string;
+  private levelColors: Record<LogLevel, ColorName>;
+  private levelLabels: Record<LogLevel, string>;
   private readonly styleOptionKeys = new Set([
     "color",
     "bgColor",
@@ -281,6 +352,8 @@ export class Logger {
     this.currentLevel = options.logLevel ?? LogLevel.Debug;
     this.serializationOptions = resolveSerializationOptions(options.serialization);
     this.prefix = options.prefix?.trim() ?? "";
+    this.levelColors = resolveLevelColors(options.levelColors);
+    this.levelLabels = resolveLevelLabels(options.levelLabels);
   }
 
   setLevel(level: LogLevel) {
@@ -304,6 +377,12 @@ export class Logger {
         },
       },
       prefix: combinePrefixes(this.prefix, options.prefix),
+      levelColors: {
+        ...this.levelColors,
+      },
+      levelLabels: {
+        ...this.levelLabels,
+      },
     });
   }
 
@@ -395,14 +474,6 @@ export class Logger {
     }
   }
 
-  private levelColors: Record<LogLevel, StyleName> = {
-    debug: "magenta",
-    info: "blue",
-    success: "green",
-    warn: "yellow",
-    error: "red",
-  };
-
   private leveledLog(level: LogLevel, ...args: unknown[]) {
     if (!this.shouldLog(level)) return;
 
@@ -439,7 +510,7 @@ export class Logger {
     }
 
     const color = this.levelColors[level];
-    const label = level.toUpperCase();
+    const label = this.levelLabels[level];
 
     const prefix = styled.bold[color](`[${label}]`);
     const time = this.showTime ? (shouldUseColor() ? styled.dim(timestamp()) : timestamp()) : "";

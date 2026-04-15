@@ -119,6 +119,24 @@ describe("Logger", () => {
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
     });
 
+    it("applies custom level colors and labels", () => {
+      const customLogger = createLogger({
+        levelColors: { info: "cyan" },
+        levelLabels: { info: "NOTICE" },
+      });
+
+      customLogger.info("hello");
+
+      const expectedPrefix = `\x1b[36m\x1b[1m[NOTICE]\x1b[22m\x1b[39m`;
+      expect(logSpy).toHaveBeenCalledWith(expectedPrefix, "hello");
+    });
+
+    it("rejects invalid level color names at construction time", () => {
+      expect(() => createLogger({ levelColors: { error: "nope" as never } })).toThrow(
+        'Unknown color for level "error": nope',
+      );
+    });
+
     it("inherits parent options and prepends child prefix", () => {
       const parent = createLogger({
         showTime: true,
@@ -135,6 +153,19 @@ describe("Logger", () => {
         `${expectedPrefix} \x1b[2m${FIXED_DATE}\x1b[22m`,
         "[db] connected",
       );
+    });
+
+    it("inherits custom level colors and labels in child loggers", () => {
+      const parent = createLogger({
+        levelColors: { warn: "magenta" },
+        levelLabels: { warn: "CAUTION" },
+      });
+      const child = parent.child({ prefix: "[db]" });
+
+      child.warn("slow query");
+
+      const expectedPrefix = `\x1b[35m\x1b[1m[CAUTION]\x1b[22m\x1b[39m`;
+      expect(logSpy).toHaveBeenCalledWith(expectedPrefix, "[db] slow query");
     });
 
     it("combines nested child prefixes", () => {
