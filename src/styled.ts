@@ -154,11 +154,7 @@ function createRgbStyle(
 ): RgbStyle {
   return {
     kind,
-    values: [
-      normalizeRgbValue(red),
-      normalizeRgbValue(green),
-      normalizeRgbValue(blue),
-    ],
+    values: [normalizeRgbValue(red), normalizeRgbValue(green), normalizeRgbValue(blue)],
   };
 }
 
@@ -198,15 +194,11 @@ function formatStyleName(style: AppliedStyle): string {
 }
 
 function isForegroundStyle(style: AppliedStyle): boolean {
-  return typeof style === "string"
-    ? COLOR_NAMES.has(style)
-    : style.kind === "rgb";
+  return typeof style === "string" ? COLOR_NAMES.has(style) : style.kind === "rgb";
 }
 
 function isBackgroundStyle(style: AppliedStyle): boolean {
-  return typeof style === "string"
-    ? BG_COLOR_NAMES.has(style)
-    : style.kind === "bgRgb";
+  return typeof style === "string" ? BG_COLOR_NAMES.has(style) : style.kind === "bgRgb";
 }
 
 function applyStyle(text: string, style: AppliedStyle): string {
@@ -224,9 +216,7 @@ function applyStyle(text: string, style: AppliedStyle): string {
 
   const [red, green, blue] = style.values;
   const open =
-    style.kind === "rgb"
-      ? `38;2;${red};${green};${blue}`
-      : `48;2;${red};${green};${blue}`;
+    style.kind === "rgb" ? `38;2;${red};${green};${blue}` : `48;2;${red};${green};${blue}`;
   const close = style.kind === "rgb" ? 39 : 49;
 
   return `\x1b[${open}m${text}\x1b[${close}m`;
@@ -279,13 +269,11 @@ function createStyled(
       }
 
       if (prop === "hex") {
-        return (value: string) =>
-          createStyled([...styles, createHexStyle("rgb", value)]);
+        return (value: string) => createStyled([...styles, createHexStyle("rgb", value)]);
       }
 
       if (prop === "bgHex") {
-        return (value: string) =>
-          createStyled([...styles, createHexStyle("bgRgb", value)]);
+        return (value: string) => createStyled([...styles, createHexStyle("bgRgb", value)]);
       }
 
       if (typeof prop === "string" && prop in ANSI_CODES) {

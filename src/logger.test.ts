@@ -1,14 +1,5 @@
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-  beforeAll,
-  afterAll,
-} from "vitest";
-import { logger, Logger, LogLevel } from "@/index";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
+import { logger, Logger, LogLevel, createLogger } from "@/index";
 import { styled } from "@/styled";
 
 describe("Logger", () => {
@@ -109,11 +100,157 @@ describe("Logger", () => {
         withLevelLogger.warn("visible");
 
         expect(logSpy).toHaveBeenCalledTimes(1);
-        expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining("[WARN]"),
-          "visible",
-        );
+        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
       });
+    });
+  });
+
+  describe("factory and child loggers", () => {
+    it("creates configured instances via createLogger", () => {
+      const customLogger = createLogger({
+        showTime: false,
+        logLevel: LogLevel.Warn,
+      });
+
+      customLogger.info("hidden");
+      customLogger.warn("visible");
+
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
+    });
+
+    it("applies custom level colors and labels", () => {
+      const customLogger = createLogger({
+        levelColors: { info: "cyan" },
+        levelLabels: { info: "NOTICE" },
+      });
+
+      customLogger.info("hello");
+
+      const expectedPrefix = `\x1b[36m\x1b[1m[NOTICE]\x1b[22m\x1b[39m`;
+      expect(logSpy).toHaveBeenCalledWith(expectedPrefix, "hello");
+    });
+
+    it("rejects invalid level color names at construction time", () => {
+      expect(() => createLogger({ levelColors: { error: "nope" as never } })).toThrow(
+        'Unknown color for level "error": nope',
+      );
+    });
+
+    it("inherits parent options and prepends child prefix", () => {
+      const parent = createLogger({
+        showTime: true,
+        logLevel: LogLevel.Info,
+      });
+      const child = parent.child({ prefix: "[db]" });
+
+      child.debug("hidden");
+      child.info("connected");
+
+      const expectedPrefix = `\x1b[34m\x1b[1m[INFO]\x1b[22m\x1b[39m`;
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy).toHaveBeenCalledWith(
+        `${expectedPrefix} \x1b[2m${FIXED_DATE}\x1b[22m`,
+        "[db] connected",
+      );
+    });
+
+    it("inherits custom level colors and labels in child loggers", () => {
+      const parent = createLogger({
+        levelColors: { warn: "magenta" },
+        levelLabels: { warn: "CAUTION" },
+      });
+      const child = parent.child({ prefix: "[db]" });
+
+      child.warn("slow query");
+
+      const expectedPrefix = `\x1b[35m\x1b[1m[CAUTION]\x1b[22m\x1b[39m`;
+      expect(logSpy).toHaveBeenCalledWith(expectedPrefix, "[db] slow query");
+    });
+
+    it("combines nested child prefixes", () => {
+      const nestedChild = createLogger().child({ prefix: "[api]" }).child({ prefix: "[db]" });
+
+      nestedChild.info("up");
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "[api] [db] up");
+    });
+
+    it("applies child prefix in json mode", () => {
+      const child = createLogger({ format: "json" }).child({ prefix: "[worker]" });
+
+      child.info("job started", { id: 1 });
+
+      const line = logSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as {
+        message: string;
+        args: unknown[];
+      };
+
+      expect(parsed.message).toBe('[worker] job started {\n  "id": 1\n}');
+      expect(parsed.args).toEqual(["[worker] job started", { id: 1 }]);
+    });
+
+    it("logs only the child prefix when a pretty child logger is called without arguments", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.info();
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "[worker]");
+    });
+
+    it("keeps only the child prefix in json mode when called without arguments", () => {
+      const child = createLogger({ format: "json" }).child({ prefix: "[worker]" });
+
+      child.info();
+
+      const line = logSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as {
+        message: string;
+        args: unknown[];
+      };
+
+      expect(parsed.message).toBe("[worker]");
+      expect(parsed.args).toEqual(["[worker]"]);
+    });
+
+    it("prepends the child prefix as a separate json arg when the first value is not a string", () => {
+      const child = createLogger({ format: "json" }).child({ prefix: "[worker]" });
+
+      child.info({ id: 1 });
+
+      const line = logSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(line) as {
+        message: string;
+        args: unknown[];
+      };
+
+      expect(parsed.message).toBe('[worker] {\n  "id": 1\n}');
+      expect(parsed.args).toEqual(["[worker]", { id: 1 }]);
+    });
+
+    it("applies child prefix for log()", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.log("manual", { id: 7 });
+
+      expect(logSpy).toHaveBeenCalledWith("[worker] manual", { id: 7 });
+    });
+
+    it("logs only the child prefix for log() without arguments", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.log();
+
+      expect(logSpy).toHaveBeenCalledWith("[worker]");
+    });
+
+    it("prepends the child prefix as a separate value for log() when the first arg is not a string", () => {
+      const child = createLogger().child({ prefix: "[worker]" });
+
+      child.log({ id: 7 });
+
+      expect(logSpy).toHaveBeenCalledWith("[worker]", { id: 7 });
     });
   });
 
@@ -181,10 +318,7 @@ describe("Logger", () => {
       const line = logSpy.mock.calls[0][0] as string;
       const parsed = JSON.parse(line) as { args: unknown[] };
 
-      expect(parsed.args).toEqual([
-        { "[Map]": [["key", 1]] },
-        { "[Set]": [2, 3] },
-      ]);
+      expect(parsed.args).toEqual([{ "[Map]": [["key", 1]] }, { "[Set]": [2, 3] }]);
     });
 
     it("routes json errors to stderr and non-errors to stdout", () => {
@@ -261,10 +395,7 @@ describe("Logger", () => {
 
       const expectedPrefix = `\x1b[32m\x1b[1m[SUCCESS]\x1b[22m\x1b[39m`;
 
-      expect(logSpy).toHaveBeenCalledWith(
-        `${expectedPrefix} \x1b[2m${FIXED_DATE}\x1b[22m`,
-        `ok`,
-      );
+      expect(logSpy).toHaveBeenCalledWith(`${expectedPrefix} \x1b[2m${FIXED_DATE}\x1b[22m`, `ok`);
     });
 
     it("logs warn with correct color", () => {
@@ -323,9 +454,7 @@ describe("Logger", () => {
 
     it("log() with multiple args and options", () => {
       logger.log("arg1", "arg2", { color: "red" });
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("\x1b[31marg1 arg2\x1b[39m"),
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("\x1b[31marg1 arg2\x1b[39m"));
     });
 
     it("handles null or non-object options in log()", () => {
@@ -342,28 +471,19 @@ describe("Logger", () => {
     it("formats undefined explicitly", () => {
       logger.info(undefined);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "undefined",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "undefined");
     });
 
     it("formats null explicitly", () => {
       logger.info(null);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "null",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "null");
     });
 
     it("formats Symbol values explicitly", () => {
       logger.info(Symbol("x"));
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "Symbol(x)",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "Symbol(x)");
     });
 
     it("formats function values explicitly", () => {
@@ -393,28 +513,19 @@ describe("Logger", () => {
     it("formats Date values explicitly", () => {
       logger.info(new Date(FIXED_DATE));
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        FIXED_DATE,
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), FIXED_DATE);
     });
 
     it("formats invalid Date values explicitly", () => {
       logger.info(new Date(Number.NaN));
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "Invalid Date",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "Invalid Date");
     });
 
     it("formats RegExp values explicitly", () => {
       logger.info(/hello/gi);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "/hello/gi",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "/hello/gi");
     });
 
     it("formats array values explicitly", () => {
@@ -496,10 +607,7 @@ describe("Logger", () => {
     it("formats primitive BigInt values", () => {
       logger.info(99n);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "99n",
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "99n");
     });
 
     it("formats Error values and falls back when stack is missing", () => {
@@ -508,10 +616,7 @@ describe("Logger", () => {
 
       logger.error(err);
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[ERROR]"),
-        "Error: boom",
-      );
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR]"), "Error: boom");
     });
 
     it("serializes nested Error objects", () => {
@@ -603,9 +708,9 @@ describe("Logger", () => {
     });
 
     it("throws a clear error for invalid rgb style options", () => {
-      expect(() =>
-        logger.log("bad rgb", { rgb: [1, Number.POSITIVE_INFINITY, 3] as any }),
-      ).toThrow("`rgb` must be a tuple with 3 finite numbers.");
+      expect(() => logger.log("bad rgb", { rgb: [1, Number.POSITIVE_INFINITY, 3] as any })).toThrow(
+        "`rgb` must be a tuple with 3 finite numbers.",
+      );
     });
 
     it("throws a clear error for invalid bgRgb style options", () => {
@@ -623,9 +728,9 @@ describe("Logger", () => {
     });
 
     it("throws a clear error for unknown background color names", () => {
-      expect(() =>
-        logger.log("bad bg color", { bgColor: "bgNope" as any }),
-      ).toThrow("Unknown background color: bgNope");
+      expect(() => logger.log("bad bg color", { bgColor: "bgNope" as any })).toThrow(
+        "Unknown background color: bgNope",
+      );
     });
 
     it("throws a clear error for invalid hex style options", () => {
@@ -641,15 +746,15 @@ describe("Logger", () => {
     });
 
     it("throws a clear error for empty modifiers arrays", () => {
-      expect(() =>
-        logger.log("bad empty modifiers", { modifiers: [] as any }),
-      ).toThrow("`modifiers` must contain at least one modifier.");
+      expect(() => logger.log("bad empty modifiers", { modifiers: [] as any })).toThrow(
+        "`modifiers` must contain at least one modifier.",
+      );
     });
 
     it("throws a clear error for invalid modifier names", () => {
-      expect(() =>
-        logger.log("bad mod", { modifiers: ["bold", "nope"] as any }),
-      ).toThrow("Unknown modifier: nope");
+      expect(() => logger.log("bad mod", { modifiers: ["bold", "nope"] as any })).toThrow(
+        "Unknown modifier: nope",
+      );
     });
   });
 
@@ -694,17 +799,13 @@ describe("Logger", () => {
       it("supports log() with hex style options", () => {
         logger.log("hex option", { hex: "#102030" });
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[38;2;16;32;48mhex option\x1b[39m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[38;2;16;32;48mhex option\x1b[39m");
       });
 
       it("supports log() with bgRgb style options", () => {
         logger.log("bg rgb option", { bgRgb: [4, 5, 6] });
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[48;2;4;5;6mbg rgb option\x1b[49m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[48;2;4;5;6mbg rgb option\x1b[49m");
       });
 
       it("supports log() with rgb and bgHex style options", () => {
@@ -764,33 +865,25 @@ describe("Logger", () => {
       it("supports rgb text styling that logs automatically", () => {
         logger.rgb(50, 50, 50)("rgb colored text");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[38;2;50;50;50mrgb colored text\x1b[39m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[38;2;50;50;50mrgb colored text\x1b[39m");
       });
 
       it("supports rgb background styling that logs automatically", () => {
         logger.bgRgb(50, 50, 50)("rgb colored background");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[48;2;50;50;50mrgb colored background\x1b[49m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[48;2;50;50;50mrgb colored background\x1b[49m");
       });
 
       it("supports hex text styling that logs automatically", () => {
         logger.hex("#336699")("hex colored text");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[38;2;51;102;153mhex colored text\x1b[39m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[38;2;51;102;153mhex colored text\x1b[39m");
       });
 
       it("supports hex background styling that logs automatically", () => {
         logger.bgHex("#102030")("hex colored background");
 
-        expect(logSpy).toHaveBeenCalledWith(
-          "\x1b[48;2;16;32;48mhex colored background\x1b[49m",
-        );
+        expect(logSpy).toHaveBeenCalledWith("\x1b[48;2;16;32;48mhex colored background\x1b[49m");
       });
     });
   });

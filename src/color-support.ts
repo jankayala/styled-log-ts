@@ -16,10 +16,7 @@ export function shouldUseColor(): boolean {
   }
 
   // FORCE_COLOR overrides TTY detection
-  if (
-    process.env["FORCE_COLOR"] !== undefined &&
-    process.env["FORCE_COLOR"] !== ""
-  ) {
+  if (process.env["FORCE_COLOR"] !== undefined && process.env["FORCE_COLOR"] !== "") {
     return true;
   }
 
