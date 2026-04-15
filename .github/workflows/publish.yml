@@ -14,7 +14,6 @@ jobs:
       id-token: write # 👈 REQUIRED for OIDC
 
     steps:
-      # v4.2.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - uses: actions/setup-node@v4
