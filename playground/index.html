@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>styled-log-ts — Playground</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="playground">
+      <header class="toolbar">
+        <div class="examples">
+          <button data-testid="example-basic" id="example-basic" class="example-btn">Basic</button>
+          <button data-testid="example-colors" id="example-colors" class="example-btn">Colors</button>
+          <button data-testid="example-chaining" id="example-chaining" class="example-btn">Chaining</button>
+          <button data-testid="example-levels" id="example-levels" class="example-btn">Levels</button>
+        </div>
+        <div class="toolbar-actions">
+          <button id="run-button" data-testid="run-button" class="btn primary">Run</button>
+        </div>
+      </header>
+
+      <main class="split-layout">
+        <section class="editor-section">
+          <div id="editor" data-testid="editor-pane" class="editor"></div>
+        </section>
+
+        <aside class="terminal-section">
+          <div class="terminal" id="terminal" data-testid="terminal-pane" aria-live="polite"></div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- Monaco loader -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/loader.js"></script>
+
+    <!-- Polyfill Node.js variables so the NPM package doesn't crash the browser -->
+    <script>
+      window.process = {
+        env: { FORCE_COLOR: "1" },
+        stdout: { isTTY: true }
+      };
+    </script>
+    <script type="module">
+      import * as StyledLog from 'https://esm.sh/styled-log-ts@latest';
+      window.StyledLogBrowser = StyledLog;
+    </script>
+    <script src="js/ansiParser.js"></script>
+    <script src="js/snippets.js"></script>
+    <!-- Use type="module" for sandbox.js so it can await our module load if needed, but since it's deferred it will work usually or we can just keep it standard and rely on the async race OR wait we shouldn't race. Better to load it sequentially. -->
+    <script type="module">
+      await import('https://esm.sh/styled-log-ts@latest'); // Ensure the library is loaded before sandbox runs
+      const sandboxPlugin = document.createElement('script');
+      sandboxPlugin.src = 'js/sandbox.js';
+      document.body.appendChild(sandboxPlugin);
+    </script>
+  </body>
+</html>
