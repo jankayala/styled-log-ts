@@ -1,16 +1,16 @@
 /* Initializes Monaco, wires UI and runs user's code inside the playground */
-(function(global) {
+(function (global) {
   "use strict";
 
   // Configure Monaco loader and environment
   if (typeof require === "function") {
     require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs" } });
     window.MonacoEnvironment = {
-      getWorkerUrl: function() {
+      getWorkerUrl: function () {
         var blob = new Blob(
           [
-            "self.MonacoEnvironment = { baseUrl: \"https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/\" };",
-            "importScripts(\"https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/base/worker/workerMain.js\");",
+            'self.MonacoEnvironment = { baseUrl: "https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/" };',
+            'importScripts("https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/base/worker/workerMain.js");',
           ],
           { type: "text/javascript" },
         );
@@ -27,7 +27,7 @@
     var container = $("#terminal");
     if (!container) return;
     var lines = String(text).split(/\r?\n/);
-    lines.forEach(function(ln) {
+    lines.forEach(function (ln) {
       var div = document.createElement("div");
       div.className = isError ? "terminal-error" : "terminal-line";
       div.setAttribute("data-testid", isError ? "terminal-error" : "terminal-line");
@@ -48,7 +48,7 @@
   // keep original console and forward to terminal as well
   global.__origConsole = global.console;
   global.console = {
-    log: function() {
+    log: function () {
       var args = Array.prototype.slice.call(arguments);
       global.__origConsole.log.apply(global.__origConsole, args);
       appendLine(
@@ -56,7 +56,7 @@
         false,
       );
     },
-    info: function() {
+    info: function () {
       var args = Array.prototype.slice.call(arguments);
       global.__origConsole.info.apply(global.__origConsole, args);
       appendLine(
@@ -64,7 +64,7 @@
         false,
       );
     },
-    warn: function() {
+    warn: function () {
       var args = Array.prototype.slice.call(arguments);
       global.__origConsole.warn.apply(global.__origConsole, args);
       appendLine(
@@ -72,7 +72,7 @@
         true,
       );
     },
-    error: function() {
+    error: function () {
       var args = Array.prototype.slice.call(arguments);
       global.__origConsole.error.apply(global.__origConsole, args);
       appendLine(
@@ -80,7 +80,7 @@
         true,
       );
     },
-    debug: function() {
+    debug: function () {
       var args = Array.prototype.slice.call(arguments);
       global.__origConsole.debug.apply(global.__origConsole, args);
       appendLine(
@@ -91,7 +91,7 @@
   };
 
   function initEditor(initialValue) {
-    require(["vs/editor/editor.main"], function() {
+    require(["vs/editor/editor.main"], function () {
       var editor = monaco.editor.create(document.getElementById("editor"), {
         value: initialValue || (window.PlaygroundSnippets && window.PlaygroundSnippets.basic) || "",
         language: "javascript",
@@ -101,10 +101,27 @@
         scrollBeyondLastLine: false,
       });
 
+      window.addEventListener("resize", function () {
+        if (editor) {
+          editor.layout();
+        }
+      });
+
       // wire buttons
       var runBtn = document.getElementById("run-button");
+      var themeToggle = document.getElementById("theme-toggle");
 
-      runBtn.addEventListener("click", function() {
+      if (themeToggle) {
+        themeToggle.addEventListener("click", function () {
+          var root = document.documentElement;
+          var isLight = root.getAttribute("data-theme") === "light";
+          var newTheme = isLight ? "dark" : "light";
+          root.setAttribute("data-theme", newTheme);
+          monaco.editor.setTheme(newTheme === "light" ? "vs" : "vs-dark");
+        });
+      }
+
+      runBtn.addEventListener("click", function () {
         var code = editor.getValue();
 
         // Reset logger state back to default before every run
@@ -131,10 +148,10 @@
         "example-chaining": "chaining",
         "example-levels": "levels",
       };
-      Object.keys(map).forEach(function(btnId) {
-        var el = document.querySelector("[data-testid=\"" + btnId + "\"]");
+      Object.keys(map).forEach(function (btnId) {
+        var el = document.querySelector('[data-testid="' + btnId + '"]');
         if (!el) return;
-        el.addEventListener("click", function() {
+        el.addEventListener("click", function () {
           var key = map[btnId];
           if (window.PlaygroundSnippets && window.PlaygroundSnippets[key]) {
             editor.setValue(window.PlaygroundSnippets[key]);
