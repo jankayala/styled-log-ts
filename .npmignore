@@ -14,8 +14,8 @@ tsconfig.json
 scripts/test-exports.*
 RELEASING.md
 
-#Playground
-playground/
+#Docs
+docs/
 
 # CI
 .github/
