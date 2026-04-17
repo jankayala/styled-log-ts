@@ -1,0 +1,240 @@
+:root {
+  --bg: #111827;
+  --panel: #1f2937;
+  --muted: #e5e7eb;
+  --text: #ffffff;
+  --accent: #818cf8;
+  --terminal-bg: #000000;
+  --border: rgba(255, 255, 255, 0.35);
+  --border-dim: rgba(255, 255, 255, 0.2);
+}
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --panel: #f3f4f6;
+  --muted: #111827;
+  --text: #000000;
+  --accent: #1d4ed8;
+  --terminal-bg: #e5e7eb;
+  --border: rgba(0, 0, 0, 0.5);
+  --border-dim: rgba(0, 0, 0, 0.3);
+}
+:root[data-theme="light"] .npm-link {
+  color: #cb3837;
+}
+* {
+  box-sizing: border-box;
+}
+/* Hide scrollbar when not needed */
+.editor,
+.terminal {
+  scrollbar-width: auto;
+}
+.editor::-webkit-scrollbar,
+.terminal::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.editor::-webkit-scrollbar-track,
+.terminal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.editor::-webkit-scrollbar-thumb,
+.terminal::-webkit-scrollbar-thumb {
+  background: var(--border-dim);
+  border-radius: 4px;
+}
+.editor::-webkit-scrollbar-thumb:hover,
+.terminal::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: auto;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: var(--border-dim);
+  border-radius: 4px;
+}
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+.playground {
+  max-width: 90%;
+  margin: 18px auto;
+  padding: 12px;
+  height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+}
+.title {
+  font-size: 18px;
+  margin: 0;
+}
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.icon-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition:
+    color 0.3s,
+    background 0.3s;
+  text-decoration: none;
+}
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--border-dim);
+}
+.sun-and-moon {
+  transition: transform 0.5s cubic-bezier(0.5, 1.25, 0.75, 1.25);
+  transform-origin: center center;
+}
+.sun-and-moon .sun,
+.sun-and-moon .sun-beams {
+  transform-origin: 12px 12px;
+  transition:
+    transform 0.5s cubic-bezier(0.5, 1.25, 0.75, 1.25),
+    opacity 0.5s;
+}
+.sun-and-moon .moon > circle {
+  transition: transform 0.5s cubic-bezier(0.5, 1.25, 0.75, 1.25);
+}
+/* Default (Dark Theme) = Moon */
+.sun-and-moon .sun {
+  transform: scale(1.75);
+}
+.sun-and-moon .sun-beams {
+  opacity: 0;
+  transform: rotate(-25deg);
+}
+.sun-and-moon .moon > circle {
+  transform: translate(-10px, 2px);
+}
+
+:root[data-theme="light"] .sun-and-moon {
+  transform: rotate(90deg);
+}
+:root[data-theme="light"] .sun-and-moon .sun {
+  transform: scale(1);
+}
+:root[data-theme="light"] .sun-and-moon .sun-beams {
+  opacity: 1;
+  transform: rotate(0);
+}
+:root[data-theme="light"] .sun-and-moon .moon > circle {
+  transform: translate(0, 0);
+}
+.examples {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.example-btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-dim);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.layout {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.section {
+  flex: 1;
+  min-width: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border-dim);
+  overflow: auto;
+}
+.editor {
+  overflow: hidden;
+  min-height: 0;
+}
+.terminal {
+  background: var(--terminal-bg);
+  padding: 12px;
+  font-family: Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.terminal-header {
+  font-size: 13px;
+  padding: 8px 10px;
+  color: var(--muted);
+}
+.terminal-line {
+  line-height: 1.4;
+  margin: 0 0 4px;
+}
+.styled-segment {
+  display: inline;
+}
+.footer {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+/* Single column layout - shrink editor and terminal */
+@media (max-width: 960px) {
+  .layout {
+    flex-direction: column;
+  }
+}
