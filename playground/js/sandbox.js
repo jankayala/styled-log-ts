@@ -29,7 +29,7 @@
     var lines = String(text).split(/\r?\n/);
     lines.forEach(function (ln) {
       var div = document.createElement("div");
-      div.className = isError ? "terminal-error" : "terminal-line";
+      div.className = "terminal-line";
       div.setAttribute("data-testid", isError ? "terminal-error" : "terminal-line");
       // parse ANSI sequences into HTML
       try {
