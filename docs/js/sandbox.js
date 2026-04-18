@@ -95,8 +95,16 @@
     var exampleButtons = document.querySelectorAll(".example");
     if (!exampleButtons.length) return;
 
-    // Set first button as active on page load
-    exampleButtons[0].classList.add("active");
+    // Load active example from localStorage or default to first
+    var savedExample = localStorage.getItem("playgroundActiveExample");
+    var activeIndex = 0;
+    if (savedExample !== null) {
+      var idx = parseInt(savedExample, 10);
+      if (!isNaN(idx) && idx >= 0 && idx < exampleButtons.length) {
+        activeIndex = idx;
+      }
+    }
+    exampleButtons[activeIndex].classList.add("active");
 
     exampleButtons.forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -104,6 +112,9 @@
           b.classList.remove("active");
         });
         btn.classList.add("active");
+        // Save active example to localStorage
+        var index = Array.prototype.indexOf.call(exampleButtons, btn);
+        localStorage.setItem("playgroundActiveExample", index);
       });
     });
   }
@@ -116,8 +127,27 @@
 
   function initEditor(initialValue) {
     require(["vs/editor/editor.main"], function () {
+      // Determine which snippet to load based on saved example or default
+      var savedExample = localStorage.getItem("playgroundActiveExample");
+      var snippetKey = "basic";
+      if (savedExample !== null) {
+        var idx = parseInt(savedExample, 10);
+        var map = {
+          0: "basic",
+          1: "colors",
+          2: "chaining",
+          3: "levels",
+        };
+        if (map[idx]) {
+          snippetKey = map[idx];
+        }
+      }
+
       var editor = monaco.editor.create(document.getElementById("editor"), {
-        value: initialValue || (window.PlaygroundSnippets && window.PlaygroundSnippets.basic) || "",
+        value:
+          initialValue ||
+          (window.PlaygroundSnippets && window.PlaygroundSnippets[snippetKey]) ||
+          "",
         language: "javascript",
         theme: "vs-dark",
         automaticLayout: true,
@@ -172,10 +202,20 @@
         "example-chaining": "chaining",
         "example-levels": "levels",
       };
+      var exampleButtons = document.querySelectorAll(".example");
       Object.keys(map).forEach(function (btnId) {
         var el = document.querySelector('[data-testid="' + btnId + '"]');
         if (!el) return;
         el.addEventListener("click", function () {
+          // Update active state
+          exampleButtons.forEach(function (b) {
+            b.classList.remove("active");
+          });
+          el.classList.add("active");
+          // Save to localStorage
+          var index = Array.prototype.indexOf.call(exampleButtons, el);
+          localStorage.setItem("playgroundActiveExample", index);
+
           var key = map[btnId];
           if (window.PlaygroundSnippets && window.PlaygroundSnippets[key]) {
             editor.setValue(window.PlaygroundSnippets[key]);
