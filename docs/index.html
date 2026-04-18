@@ -10,23 +10,25 @@
     <div class="playground">
       <header class="toolbar">
         <div class="examples">
-          <button data-testid="example-basic" id="example-basic" class="example-btn">Basic</button>
-          <button data-testid="example-colors" id="example-colors" class="example-btn">
+          <button id="example-basic" class="btn example" data-testid="example-basic">
+            Basic
+          </button>
+          <button id="example-colors" class="btn example" data-testid="example-colors">
             Colors
           </button>
-          <button data-testid="example-chaining" id="example-chaining" class="example-btn">
+          <button id="example-chaining" class="btn example" data-testid="example-chaining">
             Chaining
           </button>
-          <button data-testid="example-levels" id="example-levels" class="example-btn">
+          <button id="example-levels" class="btn example" data-testid="example-levels">
             Levels
           </button>
         </div>
-        <div class="toolbar-actions">
+        <div class="actions">
           <a
             href="https://www.npmjs.com/package/styled-log-ts"
             target="_blank"
             rel="noopener noreferrer"
-            class="icon-btn"
+            class="btn icon"
             title="styled-log-ts on NPM"
           >
             <svg viewBox="0 0 576 512" aria-hidden="true" width="22" height="22" fill="#CB3837">
@@ -39,7 +41,7 @@
             href="https://github.com/jankayala/styled-log-ts"
             target="_blank"
             rel="noopener noreferrer"
-            class="icon-btn"
+            class="btn icon"
             title="styled-log-ts on GitHub"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="currentColor">
@@ -48,8 +50,7 @@
               />
             </svg>
           </a>
-          <div style="width: 1px; height: 20px; background: var(--border); margin: 8px 4px"></div>
-          <button id="theme-toggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">
+          <button id="theme-toggle" class="btn icon" title="Toggle theme" aria-label="Toggle theme">
             <svg class="sun-and-moon" aria-hidden="true" width="22" height="22" viewBox="0 0 24 24">
               <mask class="moon" id="moon-mask">
                 <rect x="0" y="0" width="100%" height="100%" fill="white" />
@@ -75,7 +76,7 @@
               </g>
             </svg>
           </button>
-          <button id="run-button" data-testid="run-button" class="btn primary">Run</button>
+          <button id="run-button" class="btn primary" data-testid="run-button">Run</button>
         </div>
       </header>
 

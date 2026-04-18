@@ -92,17 +92,14 @@ body::-webkit-scrollbar-thumb:hover {
 }
 .toolbar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   padding: 8px 4px;
 }
-.title {
-  font-size: 18px;
-  margin: 0;
-}
-.toolbar-actions {
-  display: flex;
+.examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 120px));
   gap: 8px;
+  max-width: 60%;
 }
 .btn {
   background: transparent;
@@ -112,27 +109,50 @@ body::-webkit-scrollbar-thumb:hover {
   border-radius: 6px;
   cursor: pointer;
 }
+.example {
+  border-radius: 6px;
+  border: 1px solid var(--border-dim);
+  color: var(--muted);
+}
+.example:hover {
+  background: var(--border-dim);
+  border-color: var(--border);
+  color: var(--text);
+}
+.example.active {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.actions {
+  display: flex;
+  justify-content: right;
+  align-items: flex-end;
+  max-width: 40%;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 .btn.primary {
   background: var(--accent);
   border-color: transparent;
   color: #fff;
 }
-.icon-btn {
-  background: transparent;
+.btn.primary:hover {
+  background: #6366f1;
+}
+.icon {
   border: none;
   padding: 6px;
-  cursor: pointer;
   color: var(--muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
   transition:
     color 0.3s,
     background 0.3s;
   text-decoration: none;
 }
-.icon-btn:hover {
+.icon:hover {
   color: var(--text);
   background: var(--border-dim);
 }
@@ -161,7 +181,6 @@ body::-webkit-scrollbar-thumb:hover {
 .sun-and-moon .moon > circle {
   transform: translate(-10px, 2px);
 }
-
 :root[data-theme="light"] .sun-and-moon {
   transform: rotate(90deg);
 }
@@ -174,20 +193,6 @@ body::-webkit-scrollbar-thumb:hover {
 }
 :root[data-theme="light"] .sun-and-moon .moon > circle {
   transform: translate(0, 0);
-}
-.examples {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.example-btn {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border-dim);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
 }
 .layout {
   display: flex;

@@ -90,6 +90,30 @@
     },
   };
 
+  // Wait for DOM to be ready before setting up button handlers
+  function initButtonHandlers() {
+    var exampleButtons = document.querySelectorAll(".example");
+    if (!exampleButtons.length) return;
+
+    // Set first button as active on page load
+    exampleButtons[0].classList.add("active");
+
+    exampleButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        exampleButtons.forEach(function (b) {
+          b.classList.remove("active");
+        });
+        btn.classList.add("active");
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initButtonHandlers);
+  } else {
+    initButtonHandlers();
+  }
+
   function initEditor(initialValue) {
     require(["vs/editor/editor.main"], function () {
       var editor = monaco.editor.create(document.getElementById("editor"), {

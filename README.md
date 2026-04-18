@@ -16,6 +16,10 @@ A lightweight logger for Node.js/TypeScript that supports:
 
 ---
 
+## Try it out
+
+[playground](https://jankayala.github.io/styled-log-ts/)
+
 ## 📦 Installation
 
 ```bash
