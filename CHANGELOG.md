@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Typed `onLog` hook support via `Logger` / `createLogger` for custom transports and integrations
+- Public `LogEntry` and `LogHook` types for strongly typed log hook consumers
+
+### Changed
+
+- `Logger.child({ prefix })` now preserves inherited `onLog` hooks alongside other parent options
+- Hook failures are caught internally and reported to `stderr` without interrupting application logging
+- Initial logger level resolution now follows `LOG_LEVEL` env var first, then `options.logLevel`, then default `info`
+
+### Documentation
+
+- Added README examples and API reference entries for `onLog`, `LogEntry`, and custom transport usage
+- Documented `LOG_LEVEL` precedence and updated the default initial `logLevel` to `info`
+
+### Testing
+
+- Added Vitest coverage for structured hook payloads, multiple hooks, child hook inheritance, filtered logs, and hook failure isolation
+- Added Vitest coverage for `LOG_LEVEL` precedence, case-insensitive parsing, and invalid-value fallback behavior
+
 ## [1.0.8] - 2026.04.15
 
 ### Added

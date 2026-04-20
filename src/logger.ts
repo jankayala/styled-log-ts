@@ -35,6 +35,15 @@ export type LoggerLevelColors = Partial<Record<LogLevel, ColorName>>;
 
 export type LoggerLevelLabels = Partial<Record<LogLevel, string>>;
 
+export type LogEntry = {
+  level: LogLevel;
+  message: string;
+  timestamp: string;
+  raw: unknown[];
+};
+
+export type LogHook = (entry: LogEntry) => void;
+
 export type LoggerOptions = {
   showTime?: boolean;
   format?: LogFormat;
@@ -43,6 +52,7 @@ export type LoggerOptions = {
   prefix?: string;
   levelColors?: LoggerLevelColors;
   levelLabels?: LoggerLevelLabels;
+  onLog?: LogHook | LogHook[];
 };
 
 export type LoggerChildOptions = {
@@ -56,6 +66,8 @@ const levelPriority: Record<LogLevel, number> = {
   warn: 3,
   error: 4,
 };
+
+const DEFAULT_LOG_LEVEL: LogLevel = LogLevel.Info;
 
 type ResolvedLoggerInspectOptions = {
   depth: number;
@@ -326,6 +338,47 @@ function resolveLevelLabels(levelLabels?: LoggerLevelLabels): Record<LogLevel, s
   return resolved;
 }
 
+function resolveLogHooks(onLog?: LogHook | LogHook[]): LogHook[] {
+  if (onLog === undefined) {
+    return [];
+  }
+
+  const hooks = Array.isArray(onLog) ? onLog : [onLog];
+
+  if (!hooks.every((hook) => typeof hook === "function")) {
+    throw new TypeError("`onLog` must be a function or an array of functions.");
+  }
+
+  return [...hooks];
+}
+
+function parseLogLevel(value: string | undefined): LogLevel | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  switch (normalized) {
+    case LogLevel.Debug:
+      return LogLevel.Debug;
+    case LogLevel.Info:
+      return LogLevel.Info;
+    case LogLevel.Success:
+      return LogLevel.Success;
+    case LogLevel.Warn:
+      return LogLevel.Warn;
+    case LogLevel.Error:
+      return LogLevel.Error;
+    default:
+      return undefined;
+  }
+}
+
+function resolveInitialLogLevel(logLevel?: LogLevel): LogLevel {
+  return parseLogLevel(process.env["LOG_LEVEL"]) ?? logLevel ?? DEFAULT_LOG_LEVEL;
+}
+
 export class Logger {
   private currentLevel: LogLevel = LogLevel.Debug;
   private showTime: boolean;
@@ -334,6 +387,7 @@ export class Logger {
   private prefix: string;
   private levelColors: Record<LogLevel, ColorName>;
   private levelLabels: Record<LogLevel, string>;
+  private logHooks: LogHook[];
   private readonly styleOptionKeys = new Set([
     "color",
     "bgColor",
@@ -349,11 +403,12 @@ export class Logger {
   constructor(options: LoggerOptions = {}) {
     this.showTime = options.showTime ?? false;
     this.format = options.format ?? "pretty";
-    this.currentLevel = options.logLevel ?? LogLevel.Debug;
+    this.currentLevel = resolveInitialLogLevel(options.logLevel);
     this.serializationOptions = resolveSerializationOptions(options.serialization);
     this.prefix = options.prefix?.trim() ?? "";
     this.levelColors = resolveLevelColors(options.levelColors);
     this.levelLabels = resolveLevelLabels(options.levelLabels);
+    this.logHooks = resolveLogHooks(options.onLog);
   }
 
   setLevel(level: LogLevel) {
@@ -383,6 +438,7 @@ export class Logger {
       levelLabels: {
         ...this.levelLabels,
       },
+      onLog: this.logHooks,
     });
   }
 
@@ -416,6 +472,41 @@ export class Logger {
     }
 
     return [this.prefix, ...args];
+  }
+
+  private withPrefixedRawArgs(args: unknown[]): unknown[] {
+    if (!this.prefix) {
+      return [...args];
+    }
+
+    if (args.length === 0) {
+      return [this.prefix];
+    }
+
+    if (typeof args[0] === "string") {
+      return [`${this.prefix} ${args[0]}`, ...args.slice(1)];
+    }
+
+    return [this.prefix, ...args];
+  }
+
+  private reportHookError(error: unknown): void {
+    const renderedError =
+      error instanceof Error
+        ? (error.stack ?? `${error.name}: ${error.message}`)
+        : format(error, this.serializationOptions);
+
+    console.error("[LOGGER_HOOK_ERROR]", renderedError);
+  }
+
+  private notifyHooks(entry: LogEntry): void {
+    for (const hook of this.logHooks) {
+      try {
+        hook(entry);
+      } catch (error) {
+        this.reportHookError(error);
+      }
+    }
   }
 
   private isStyleOptionsCandidate(obj: unknown): obj is StyleOptions {
@@ -478,9 +569,12 @@ export class Logger {
     if (!this.shouldLog(level)) return;
 
     const output = level === LogLevel.Error ? console.error : console.log;
+    const logTimestamp = timestamp();
+    const rawArgs = this.withPrefixedRawArgs(args);
     const formattedArgs = this.withPrefixedArgs(
       args.map((arg) => format(arg, this.serializationOptions)),
     );
+    const message = formattedArgs.join(" ");
 
     if (this.format === "json") {
       const serializedArgs = this.withPrefixedSerializableArgs(
@@ -496,8 +590,8 @@ export class Logger {
         error?: ReturnType<typeof serializeError>;
       } = {
         level,
-        time: timestamp(),
-        message: formattedArgs.join(" "),
+        time: logTimestamp,
+        message,
         args: serializedArgs,
       };
 
@@ -506,6 +600,12 @@ export class Logger {
       }
 
       output(JSON.stringify(payload));
+      this.notifyHooks({
+        level,
+        message,
+        timestamp: logTimestamp,
+        raw: rawArgs,
+      });
       return;
     }
 
@@ -513,9 +613,15 @@ export class Logger {
     const label = this.levelLabels[level];
 
     const prefix = styled.bold[color](`[${label}]`);
-    const time = this.showTime ? (shouldUseColor() ? styled.dim(timestamp()) : timestamp()) : "";
+    const time = this.showTime ? (shouldUseColor() ? styled.dim(logTimestamp) : logTimestamp) : "";
 
     output(`${prefix}${this.showTime ? " " + time : ""}`, ...formattedArgs);
+    this.notifyHooks({
+      level,
+      message,
+      timestamp: logTimestamp,
+      raw: rawArgs,
+    });
   }
 
   log(...args: unknown[]) {

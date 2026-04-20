@@ -12,6 +12,7 @@ A lightweight logger for Node.js/TypeScript that supports:
 - 🕒 ISO timestamps
 - 🧱 Structured NDJSON mode (`format: "json"`)
 - 🔇 Log level filtering (e.g. only show `warn` and above)
+- 🔌 Typed `onLog` hooks for custom transports and integrations
 - 🧩 Custom formatting via chaining or `StyleOptions`
 
 ---
@@ -86,6 +87,23 @@ const logger5 = createLogger({
 
 logger5.error("database unavailable");
 // [FAIL] database unavailable
+
+// Forward entries to custom transports or integrations
+const logger6 = createLogger({
+  onLog: [
+    (entry) => {
+      if (entry.level === "error") {
+        process.stderr.write(`captured error: ${entry.message}\n`);
+      }
+    },
+    (entry) => {
+      // send to a file, queue, or monitoring SDK
+      void entry;
+    },
+  ],
+});
+
+logger6.info("worker ready", { queue: "emails" });
 ```
 
 ### Child Loggers
@@ -105,6 +123,33 @@ sqlLogger.warn("slow query", { durationMs: 1200 });
 //   "durationMs": 1200
 // }
 ```
+
+Child loggers inherit parent options, including `format`, log level, serialization settings,
+custom labels/colors, and `onLog` hooks.
+
+### `onLog` Hooks
+
+Use `onLog` to observe structured log entries and forward them to external systems without
+wrapping every logger call.
+
+```ts
+import { createLogger, type LogEntry } from "styled-log-ts";
+
+const logger = createLogger({
+  onLog: (entry: LogEntry) => {
+    if (entry.level === "error") {
+      // forward to an external transport
+      process.stderr.write(`transport: ${entry.timestamp} ${entry.message}\n`);
+    }
+  },
+});
+
+logger.error("database unavailable", { region: "eu-central-1" });
+```
+
+- `onLog` accepts either a single hook or an array of hooks.
+- Each hook receives `{ level, message, timestamp, raw }`.
+- Hook failures are caught internally and reported to `stderr` so application logging continues.
 
 ### CommonJS
 
@@ -154,6 +199,9 @@ const plain = stripAnsi("\x1b[31mHello\x1b[39m"); // → "Hello"
 
 Control which logs are shown by setting a minimum log level.
 
+`LOG_LEVEL` (if set) has highest priority for the initial level. Then `options.logLevel` is used,
+and the final fallback is `"info"`.
+
 ```ts
 import { logger } from "styled-log-ts";
 
@@ -164,6 +212,11 @@ logger.info("Hidden"); // ❌ not shown
 logger.success("Hidden"); // ❌ not shown
 logger.warn("Visible"); // ✅ shown
 logger.error("Visible"); // ✅ shown
+```
+
+```bash
+# Override initial log level via environment (case-insensitive)
+LOG_LEVEL=warn node app.js
 ```
 
 ### Log Level Order
@@ -247,16 +300,17 @@ const logger = createLogger({ showTime: true, logLevel: "info" });
 
 ```text
 new Logger()
-new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?: LogLevel; serialization?: { depth?: number; inspect?: { depth?: number; compact?: boolean | number } }; levelColors?: Partial<Record<LogLevel, ColorName>>; levelLabels?: Partial<Record<LogLevel, string>> })
+new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?: LogLevel; serialization?: { depth?: number; inspect?: { depth?: number; compact?: boolean | number } }; levelColors?: Partial<Record<LogLevel, ColorName>>; levelLabels?: Partial<Record<LogLevel, string>>; onLog?: LogHook | LogHook[] })
 ```
 
 | Parameter                       | Type                                   | Default               | Description                                                                       |
 | ------------------------------- | -------------------------------------- | --------------------- | --------------------------------------------------------------------------------- |
 | `showTime`                      | `boolean`                              | `false`               | Include ISO timestamp prefix (pretty mode)                                        |
 | `format`                        | `"pretty" \| "json"`                   | `"pretty"`            | Output mode (`json` emits one NDJSON line per call)                               |
-| `logLevel`                      | `LogLevel`                             | `"debug"`             | Initial minimum log level                                                         |
+| `logLevel`                      | `LogLevel`                             | `"info"`              | Initial minimum log level (`LOG_LEVEL` env var has higher priority)               |
 | `levelColors`                   | `Partial<Record<LogLevel, ColorName>>` | defaults per level    | Override per-level pretty output colors (`debug`,`info`,`success`,`warn`,`error`) |
 | `levelLabels`                   | `Partial<Record<LogLevel, string>>`    | uppercase level names | Override per-level pretty output labels                                           |
+| `onLog`                         | `LogHook \| LogHook[]`                 | `undefined`           | Observe structured log entries for custom transports/integrations                 |
 | `serialization.depth`           | `number`                               | `4`                   | Maximum nesting depth before objects/arrays are collapsed to placeholders         |
 | `serialization.inspect.depth`   | `number`                               | `4`                   | `inspect()` depth used for fallback formatting                                    |
 | `serialization.inspect.compact` | `boolean \| number`                    | `false`               | `inspect()` compactness for fallback formatting                                   |
@@ -283,6 +337,19 @@ new Logger(options?: { showTime?: boolean; format?: "pretty" | "json"; logLevel?
 | `warn(...args)`      | Warning message (default color: yellow)     |
 | `error(...args)`     | Error message (default color: red)          |
 | `log(text, options)` | Custom styled output via `StyleOptions`     |
+
+### Hook Types
+
+```ts
+type LogEntry = {
+  level: LogLevel;
+  message: string;
+  timestamp: string;
+  raw: unknown[];
+};
+
+type LogHook = (entry: LogEntry) => void;
+```
 
 ### Color Utilities
 

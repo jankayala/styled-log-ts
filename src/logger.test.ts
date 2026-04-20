@@ -4,6 +4,7 @@ import { styled } from "@/styled";
 
 describe("Logger", () => {
   const FIXED_DATE = "2026-01-01T00:00:00.000Z";
+  const originalLogLevel = process.env["LOG_LEVEL"];
 
   let logSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
@@ -11,18 +12,28 @@ describe("Logger", () => {
   beforeAll(() => {
     process.env["FORCE_COLOR"] = "1";
     delete process.env["NO_COLOR"];
+    delete process.env["LOG_LEVEL"];
   });
 
   afterAll(() => {
     delete process.env["FORCE_COLOR"];
+    if (originalLogLevel === undefined) {
+      delete process.env["LOG_LEVEL"];
+    } else {
+      process.env["LOG_LEVEL"] = originalLogLevel;
+    }
   });
 
   beforeEach(() => {
+    delete process.env["LOG_LEVEL"];
     logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date(FIXED_DATE));
+
+    // Keep singleton logger behavior stable across tests.
+    logger.setLevel(LogLevel.Debug);
   });
 
   afterEach(() => {
@@ -102,6 +113,64 @@ describe("Logger", () => {
         expect(logSpy).toHaveBeenCalledTimes(1);
         expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
       });
+
+      it("defaults to info when neither LOG_LEVEL nor options.logLevel is set", () => {
+        const defaultLevelLogger = new Logger();
+
+        defaultLevelLogger.debug("hidden");
+        defaultLevelLogger.info("visible");
+
+        expect(logSpy).toHaveBeenCalledTimes(1);
+        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "visible");
+      });
+
+      it("prioritizes LOG_LEVEL over options.logLevel", () => {
+        process.env["LOG_LEVEL"] = "error";
+        const envLogger = new Logger({ logLevel: LogLevel.Debug });
+
+        envLogger.warn("hidden");
+        envLogger.error("visible");
+
+        expect(logSpy).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR]"), "visible");
+      });
+
+      it("accepts mixed-case LOG_LEVEL values", () => {
+        process.env["LOG_LEVEL"] = "WaRn";
+        const envLogger = new Logger();
+
+        envLogger.info("hidden");
+        envLogger.warn("visible");
+
+        expect(logSpy).toHaveBeenCalledTimes(1);
+        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[WARN]"), "visible");
+      });
+
+      it("maps LOG_LEVEL values debug/info/success to the matching internal level", () => {
+        const envCases: Array<{ value: string; expected: LogLevel }> = [
+          { value: "debug", expected: LogLevel.Debug },
+          { value: "info", expected: LogLevel.Info },
+          { value: "success", expected: LogLevel.Success },
+        ];
+
+        for (const { value, expected } of envCases) {
+          process.env["LOG_LEVEL"] = value;
+          const envLogger = new Logger();
+          expect(envLogger.getLevel()).toBe(expected);
+        }
+      });
+
+      it("falls back to options.logLevel when LOG_LEVEL is invalid", () => {
+        process.env["LOG_LEVEL"] = "verbose";
+        const envLogger = new Logger({ logLevel: LogLevel.Success });
+
+        envLogger.info("hidden");
+        envLogger.success("visible");
+
+        expect(logSpy).toHaveBeenCalledTimes(1);
+        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[SUCCESS]"), "visible");
+      });
     });
   });
 
@@ -174,6 +243,21 @@ describe("Logger", () => {
       nestedChild.info("up");
 
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "[api] [db] up");
+    });
+
+    it("inherits onLog hooks in child loggers", () => {
+      const hook = vi.fn();
+      const child = createLogger({ onLog: hook }).child({ prefix: "[db]" });
+
+      child.info("connected", { attempts: 1 });
+
+      expect(hook).toHaveBeenCalledTimes(1);
+      expect(hook).toHaveBeenCalledWith({
+        level: LogLevel.Info,
+        message: '[db] connected {\n  "attempts": 1\n}',
+        timestamp: FIXED_DATE,
+        raw: ["[db] connected", { attempts: 1 }],
+      });
     });
 
     it("applies child prefix in json mode", () => {
@@ -332,6 +416,106 @@ describe("Logger", () => {
     });
   });
 
+  describe("onLog hooks", () => {
+    it("rejects invalid onLog values at construction time", () => {
+      expect(() => createLogger({ onLog: "invalid" as unknown as never })).toThrow(
+        new TypeError("`onLog` must be a function or an array of functions."),
+      );
+    });
+
+    it("invokes onLog with a structured log entry", () => {
+      const hook = vi.fn();
+      const hookLogger = createLogger({ onLog: hook });
+
+      hookLogger.info("job started", { id: 1 });
+
+      expect(hook).toHaveBeenCalledTimes(1);
+      expect(hook).toHaveBeenCalledWith({
+        level: LogLevel.Info,
+        message: 'job started {\n  "id": 1\n}',
+        timestamp: FIXED_DATE,
+        raw: ["job started", { id: 1 }],
+      });
+    });
+
+    it("supports registering multiple hooks", () => {
+      const calls: string[] = [];
+      const firstHook = vi.fn(() => {
+        calls.push("first");
+      });
+      const secondHook = vi.fn(() => {
+        calls.push("second");
+      });
+      const hookLogger = createLogger({ onLog: [firstHook, secondHook] });
+
+      hookLogger.warn("careful");
+
+      expect(firstHook).toHaveBeenCalledTimes(1);
+      expect(secondHook).toHaveBeenCalledTimes(1);
+      expect(calls).toEqual(["first", "second"]);
+    });
+
+    it("does not invoke hooks for filtered log levels", () => {
+      const hook = vi.fn();
+      const hookLogger = createLogger({
+        logLevel: LogLevel.Warn,
+        onLog: hook,
+      });
+
+      hookLogger.info("hidden");
+
+      expect(hook).not.toHaveBeenCalled();
+    });
+
+    it("catches hook errors and reports them to stderr without crashing", () => {
+      const hookLogger = createLogger({
+        onLog: () => {
+          throw new Error("hook failed");
+        },
+      });
+
+      expect(() => hookLogger.info("safe")).not.toThrow();
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[INFO]"), "safe");
+      expect(errorSpy).toHaveBeenCalledWith(
+        "[LOGGER_HOOK_ERROR]",
+        expect.stringContaining("Error: hook failed"),
+      );
+    });
+
+    it("reports hook Error instances without a stack using name and message", () => {
+      const hookLogger = createLogger({
+        onLog: () => {
+          const error = new TypeError("hook failed without stack");
+          delete error.stack;
+          throw error;
+        },
+      });
+
+      hookLogger.info("safe");
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        "[LOGGER_HOOK_ERROR]",
+        "TypeError: hook failed without stack",
+      );
+    });
+
+    it("reports non-Error hook failures using logger formatting", () => {
+      const hookLogger = createLogger({
+        onLog: () => {
+          throw { reason: "hook failed", retryable: false };
+        },
+      });
+
+      hookLogger.warn("safe");
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        "[LOGGER_HOOK_ERROR]",
+        '{\n  "reason": "hook failed",\n  "retryable": false\n}',
+      );
+    });
+  });
+
   describe("log levels", () => {
     it("respects log level settings", () => {
       const customLogger = new Logger();
@@ -353,6 +537,7 @@ describe("Logger", () => {
 
     it("routes levels to the expected streams", () => {
       const customLogger = new Logger({ showTime: false });
+      customLogger.setLevel(LogLevel.Debug);
 
       customLogger.debug("d");
       customLogger.info("i");
