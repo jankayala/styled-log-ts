@@ -1,6 +1,9 @@
 # styled-log-ts
 
 [![CI](https://github.com/jankayala/styled-log-ts/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jankayala/styled-log-ts/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/styled-log-ts.svg)](https://www.npmjs.com/package/styled-log-ts)
+[![Zero runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-2ea44f)](https://www.npmjs.com/package/styled-log-ts)
+[![Bundle size](https://img.shields.io/bundlephobia/minzip/styled-log-ts)](https://bundlephobia.com/package/styled-log-ts)
 
 A lightweight logger for Node.js/TypeScript that supports:
 
@@ -14,6 +17,7 @@ A lightweight logger for Node.js/TypeScript that supports:
 - 🔇 Log level filtering (e.g. only show `warn` and above)
 - 🔌 Typed `onLog` hooks for custom transports and integrations
 - 🧩 Custom formatting via chaining or `StyleOptions`
+- 📦 Zero runtime dependencies
 
 ---
 
@@ -296,6 +300,14 @@ import { createLogger } from "styled-log-ts";
 const logger = createLogger({ showTime: true, logLevel: "info" });
 ```
 
+### `StyledLogger`
+
+`StyledLogger` combines all `Logger` methods with the `styled` chainable API.
+
+```ts
+type StyledLogger = Logger & typeof styled;
+```
+
 ### `Logger` Constructor
 
 ```text
@@ -351,6 +363,20 @@ type LogEntry = {
 type LogHook = (entry: LogEntry) => void;
 ```
 
+### Additional exported types
+
+| Export                                                     | Description                                                          |
+| ---------------------------------------------------------- | -------------------------------------------------------------------- |
+| `LogLevel`                                                 | Enum of built-in levels: `Debug`, `Info`, `Success`, `Warn`, `Error` |
+| `LogFormat`                                                | Output mode: `"pretty" \| "json"`                                    |
+| `LoggerOptions`                                            | Constructor/factory options for logger configuration                 |
+| `LoggerChildOptions`                                       | Options for `child({ prefix })`                                      |
+| `LoggerSerializationOptions`                               | Serialization controls for nested objects and inspect fallback       |
+| `LoggerInspectOptions`                                     | `inspect()`-specific depth and compact settings                      |
+| `LoggerLevelColors`                                        | Per-level color overrides                                            |
+| `LoggerLevelLabels`                                        | Per-level label overrides                                            |
+| `ColorName` / `BgColorName` / `ModifierName` / `StyleName` | Typed style keys for the `styled` API                                |
+
 ### Color Utilities
 
 | Export           | Signature                  | Description                                     |
@@ -363,7 +389,13 @@ type LogHook = (entry: LogEntry) => void;
 ## 🏷 Log Levels
 
 ```ts
-type LogLevel = "debug" | "info" | "success" | "warn" | "error";
+enum LogLevel {
+  Debug = "debug",
+  Info = "info",
+  Success = "success",
+  Warn = "warn",
+  Error = "error",
+}
 ```
 
 ---
