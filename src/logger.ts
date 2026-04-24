@@ -419,27 +419,29 @@ export class Logger {
     return this.currentLevel;
   }
 
-  child(options: LoggerChildOptions = {}): Logger {
-    return new Logger({
-      showTime: this.showTime,
-      format: this.format,
-      logLevel: this.currentLevel,
-      serialization: {
-        depth: this.serializationOptions.depth,
-        inspect: {
-          depth: this.serializationOptions.inspect.depth,
-          compact: this.serializationOptions.inspect.compact,
+  child(options: LoggerChildOptions = {}): StyledLogger {
+    return createStyledLogger(
+      new Logger({
+        showTime: this.showTime,
+        format: this.format,
+        logLevel: this.currentLevel,
+        serialization: {
+          depth: this.serializationOptions.depth,
+          inspect: {
+            depth: this.serializationOptions.inspect.depth,
+            compact: this.serializationOptions.inspect.compact,
+          },
         },
-      },
-      prefix: combinePrefixes(this.prefix, options.prefix),
-      levelColors: {
-        ...this.levelColors,
-      },
-      levelLabels: {
-        ...this.levelLabels,
-      },
-      onLog: this.logHooks,
-    });
+        prefix: combinePrefixes(this.prefix, options.prefix),
+        levelColors: {
+          ...this.levelColors,
+        },
+        levelLabels: {
+          ...this.levelLabels,
+        },
+        onLog: this.logHooks,
+      }),
+    );
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -691,8 +693,8 @@ export class Logger {
   }
 }
 
-export function createLogger(options: LoggerOptions = {}): Logger {
-  return new Logger(options);
+export function createLogger(options: LoggerOptions = {}): StyledLogger {
+  return createStyledLogger(new Logger(options));
 }
 
 const baseLogger = createLogger({ showTime: true });
@@ -736,35 +738,39 @@ function createLoggerStyled(currentStyle: typeof styled = styled): LoggerStyledC
   });
 }
 
-export const logger: StyledLogger = new Proxy(baseLogger, {
-  get(target, prop) {
-    if (typeof prop === "string" && prop in target) {
-      const value = target[prop as keyof Logger];
-      return typeof value === "function" ? value.bind(target) : value;
-    }
+function createStyledLogger(logger: Logger): StyledLogger {
+  return new Proxy(logger, {
+    get(target, prop) {
+      if (typeof prop === "string" && prop in target) {
+        const value = target[prop as keyof Logger];
+        return typeof value === "function" ? value.bind(target) : value;
+      }
 
-    if (prop === "rgb") {
-      return (red: number, green: number, blue: number) =>
-        createLoggerStyled(styled.rgb(red, green, blue));
-    }
+      if (prop === "rgb") {
+        return (red: number, green: number, blue: number) =>
+          createLoggerStyled(styled.rgb(red, green, blue));
+      }
 
-    if (prop === "bgRgb") {
-      return (red: number, green: number, blue: number) =>
-        createLoggerStyled(styled.bgRgb(red, green, blue));
-    }
+      if (prop === "bgRgb") {
+        return (red: number, green: number, blue: number) =>
+          createLoggerStyled(styled.bgRgb(red, green, blue));
+      }
 
-    if (prop === "hex") {
-      return (value: string) => createLoggerStyled(styled.hex(value));
-    }
+      if (prop === "hex") {
+        return (value: string) => createLoggerStyled(styled.hex(value));
+      }
 
-    if (prop === "bgHex") {
-      return (value: string) => createLoggerStyled(styled.bgHex(value));
-    }
+      if (prop === "bgHex") {
+        return (value: string) => createLoggerStyled(styled.bgHex(value));
+      }
 
-    if (typeof prop === "string" && prop in ANSI_CODES) {
-      return createLoggerStyled(styled[prop as StyleName]);
-    }
+      if (typeof prop === "string" && prop in ANSI_CODES) {
+        return createLoggerStyled(styled[prop as StyleName]);
+      }
 
-    return undefined;
-  },
-}) as StyledLogger;
+      return undefined;
+    },
+  }) as StyledLogger;
+}
+
+export const logger: StyledLogger = baseLogger;

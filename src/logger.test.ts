@@ -206,6 +206,29 @@ describe("Logger", () => {
       );
     });
 
+    it("returns a styled logger proxy from createLogger", () => {
+      const customLogger = createLogger();
+
+      customLogger.red.bgBlack("styled text");
+
+      const calledWith = logSpy.mock.calls[0][0] as string;
+      expect(calledWith).toContain("styled text");
+      expect(calledWith).toContain("\x1b[31m");
+      expect(calledWith).toContain("\x1b[40m");
+    });
+
+    it("supports styled chaining on child loggers", () => {
+      const parent = createLogger();
+      const child = parent.child({ prefix: "[db]" });
+
+      child.bold.red("child styled text");
+
+      const calledWith = logSpy.mock.calls[0][0] as string;
+      expect(calledWith).toContain("child styled text");
+      expect(calledWith).toContain("\x1b[1m");
+      expect(calledWith).toContain("\x1b[31m");
+    });
+
     it("inherits parent options and prepends child prefix", () => {
       const parent = createLogger({
         showTime: true,
