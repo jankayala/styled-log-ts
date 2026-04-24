@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.1] - 2026.04.24
 
 ### Added
-..
+
 - `createLogger()` now returns a styled logger proxy so instances support chained styles like `.red.bgBlack()`
 
 ### Documentation

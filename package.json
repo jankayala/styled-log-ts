@@ -1,6 +1,6 @@
 {
   "name": "styled-log-ts",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A lightweight color logger for Node.js/TypeScript",
   "author": "jankayala",
   "repository": {
@@ -54,11 +54,11 @@
   },
   "devDependencies": {
     "@types/node": "25.6.0",
-    "@vitest/coverage-v8": "4.1.4",
+    "@vitest/coverage-v8": "4.1.5",
     "prettier": "3.8.3",
-    "tsdown": "0.21.9",
+    "tsdown": "0.21.10",
     "typescript": "6.0.3",
-    "vitest": "4.1.4"
+    "vitest": "4.1.5"
   },
   "sideEffects": false
 }
