@@ -53,7 +53,7 @@
     "prepublishOnly": "npm run build && npm run test"
   },
   "devDependencies": {
-    "@types/node": "25.6.0",
+    "@types/node": "25.7.0",
     "@vitest/coverage-v8": "4.1.5",
     "prettier": "3.8.3",
     "tsdown": "0.21.10",
